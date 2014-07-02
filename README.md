@@ -1,4 +1,4 @@
-Robostangs-Robot-Communication-Protocol
+Robostangs-Robot-Communication-Protocol (RRCP)
 =======================================
 
 Robostangs...?

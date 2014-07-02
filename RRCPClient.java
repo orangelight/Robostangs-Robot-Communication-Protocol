@@ -3,6 +3,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.Socket;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -14,13 +15,14 @@ import java.util.logging.Logger;
 public class RRCPClient {
 
     Socket s;
-    private DataInputStream dis;
+    DataInputStream dis;
     private DataOutputStream dos;
     private String host;
     private int port;
     private int timeout = 20000;
     private boolean connected = false;
     private Thread heartBeatThread;
+    private boolean heartBeatLock = false;
     /**
      * Sets the robot server IP
      * Sets port to default port (548)
@@ -51,6 +53,7 @@ public class RRCPClient {
      * Tries to connect to robot server with server host and port
      */
     public void connect() {
+        
         try {
             s = new Socket(host, port);
             s.setSoTimeout(timeout);
@@ -72,49 +75,76 @@ public class RRCPClient {
     public boolean isConnected() {
         return connected;
     }
+    /**
+     * Locks or Unlocks heartbeat thread so it doesent mess stuff up
+     * @param b set to true or false
+     */
+    public void setHeartBeatLock(boolean b) {
+        this.heartBeatLock = b;
+    }
     
     public byte readByte() {
+        this.setHeartBeatLock(true);
         try {
-            return dis.readByte();
+            byte b = dis.readByte();
+            this.setHeartBeatLock(false);
+            return b;
         } catch (IOException ex) {
             System.err.println("Error reading data from Robot Server: \"" + ex.getMessage()+"\"");
         }
+        this.setHeartBeatLock(false);
         return -1;
     }
     public boolean readBoolean() {
+        this.setHeartBeatLock(true);
         try {
-            return dis.readBoolean();
+            boolean b = dis.readBoolean();
+            this.setHeartBeatLock(false);
+            return b;
         } catch (IOException ex) {
             System.err.println("Error reading data from Robot Server: \"" + ex.getMessage()+"\"");
             this.close();
         }
+        this.setHeartBeatLock(false);
         return false;
     }
     public int readInt() {
+        this.setHeartBeatLock(true);
         try {
-            return dis.readInt();
+            int i = dis.readInt();
+            this.setHeartBeatLock(false);
+            return i;
         } catch (IOException ex) {
             System.err.println("Error reading data from Robot Server: \"" + ex.getMessage()+"\"");
             this.close();
         }
+        this.setHeartBeatLock(false);
         return -1;
     }
     public double readDouble() {
+        this.setHeartBeatLock(true);
         try {
-            return dis.readDouble();
+            double d = dis.readDouble();
+            this.setHeartBeatLock(false);
+            return d;
         } catch (IOException ex) {
             System.err.println("Error reading data from Robot Server: \"" + ex.getMessage()+"\"");
             this.close();
         }
+        this.setHeartBeatLock(false);
         return -1;
     }
     public String readString() {
+        this.setHeartBeatLock(true);
         try {
-            return dis.readUTF();
+            String s = dis.readUTF();
+            this.setHeartBeatLock(false);
+            return s;
         } catch (IOException ex) {
             System.err.println("Error reading data from Robot Server: \"" + ex.getMessage()+"\"");
             this.close();
         }
+        this.setHeartBeatLock(false);
         return "";
     }
     public void sendCommand(String command) {
@@ -157,6 +187,7 @@ public class RRCPClient {
         }
     }
     public void sendCommandWithDoubleArray(String command, double d[]) {
+        heartBeatLock = true;
         try {
             dos.writeUTF(command);
             dos.writeInt(d.length);
@@ -168,6 +199,7 @@ public class RRCPClient {
             System.err.println("Error sending data to Robot Server: \"" + ex.getMessage()+"\"");
             this.close();
         }
+        heartBeatLock = false;
     }
     public void close() {
         try {
@@ -191,8 +223,13 @@ public class RRCPClient {
             Logger.getLogger(RRCPClient.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
+    
     public InputStream getInputStream() throws IOException {
         return s.getInputStream();
+    }
+    
+    public OutputStream getOutputStream() throws IOException {
+        return s.getOutputStream();
     }
     
     private class HeartBeatThread implements Runnable {
@@ -200,7 +237,9 @@ public class RRCPClient {
         @Override
         public void run() {
             while(isConnected()) {
-                sendHeartBeat();
+                if(!heartBeatLock) {
+                    sendHeartBeat();
+                }
                 try {
                     Thread.sleep(2000);
                 } catch (InterruptedException ex) {

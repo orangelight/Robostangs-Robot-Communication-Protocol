@@ -18,6 +18,7 @@ public class RRCPServer implements Runnable{
     private static int timeout = 5000;
     private static Thread t;
     private static RRCPServer instance;
+    private static ServerSocket server;
 
     public static RRCPServer getInstance() {
         if (instance == null) {
@@ -28,6 +29,7 @@ public class RRCPServer implements Runnable{
     
     private RRCPServer() {
         t = new Thread(this);
+        RRCPCommandHandler.getInstance();
     }
     public static void startServer(int port, int timeout) {
         RRCPServer.port = port;
@@ -39,9 +41,18 @@ public class RRCPServer implements Runnable{
         t.start();
     }
     
+    public static void stopServer() {
+        try {
+            listening = false;
+            server.close();
+        } catch (IOException ex) {
+            Logger.getLogger(RRCPServer.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        System.out.println("SERVER SHUT DOWN");
+    }
     public void run() {
         try {
-            ServerSocket server = new ServerSocket(this.port);
+            server = new ServerSocket(this.port);
            while(listening) {
                Socket s = server.accept();
                System.out.println("Client Connected");
@@ -53,6 +64,7 @@ public class RRCPServer implements Runnable{
             Logger.getLogger(RRCPServer.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
+    
     
     private class RRCPConnectionHandler implements Runnable {
         
@@ -89,12 +101,13 @@ public class RRCPServer implements Runnable{
                     while(dis.available() > 0) {
                         String command = dis.readUTF();
                         System.out.println("READING: "+command);
+                        this.lastHeartBeat = System.currentTimeMillis();
                         if(command.equals("HEARTBEAT")) {
                             dos.write(21);
                             dos.flush();
                             this.lastHeartBeat = System.currentTimeMillis();
                         } else {
-                            
+                            RRCPCommandHandler.executeCommand(command, dis, dos);
                         }
                     }
                     try {

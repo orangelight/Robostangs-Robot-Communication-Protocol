@@ -1,14 +1,9 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
-import java.net.UnknownHostException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -23,7 +18,7 @@ public class RRCPClient {
     private DataOutputStream dos;
     private String host;
     private int port;
-    private int timeout = 5000;
+    private int timeout = 20000;
     private boolean connected = false;
     private Thread heartBeatThread;
     /**
@@ -186,10 +181,14 @@ public class RRCPClient {
         }
     }
     public void sendHeartBeat() {
-        this.sendCommand("HEARTBEAT");
-        if(this.readByte() == 548) this.connected = true;
-        else {
-            this.close(); 
+        try {
+            this.sendCommand("HEARTBEAT");
+            if(dis.readByte() == 21) this.connected = true;
+            else { 
+                this.close(); 
+            }
+        } catch (IOException ex) {
+            Logger.getLogger(RRCPClient.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
     public InputStream getInputStream() throws IOException {

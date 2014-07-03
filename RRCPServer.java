@@ -34,6 +34,7 @@ public class RRCPServer implements Runnable{
     public static void startServer(int port, int timeout) {
         RRCPServer.port = port;
         RRCPServer.timeout = timeout;
+        listening = true;
         t.start();
     }
     
@@ -90,6 +91,7 @@ public class RRCPServer implements Runnable{
             try {
                 dis.close();
                 s.close();
+                RRCPServer.listening = false;
             } catch (IOException ex) {
                 Logger.getLogger(RRCPServer.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -97,7 +99,7 @@ public class RRCPServer implements Runnable{
         private void protocol() {
             try {
                 this.lastHeartBeat = System.currentTimeMillis();
-                while(System.currentTimeMillis() < this.lastHeartBeat+timeout) {
+                while(System.currentTimeMillis() < this.lastHeartBeat+timeout && RRCPServer.listening) {
                     while(dis.available() > 0) {
                         String command = dis.readUTF();
                         System.out.println("READING: "+command);
@@ -106,6 +108,9 @@ public class RRCPServer implements Runnable{
                             dos.write(21);
                             dos.flush();
                             this.lastHeartBeat = System.currentTimeMillis();
+                        } else if(command.equals("QUIT")) { 
+                            this.close();
+                            break;
                         } else {
                             RRCPCommandHandler.executeCommand(command, dis, dos);
                         }

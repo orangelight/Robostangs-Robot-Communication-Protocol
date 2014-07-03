@@ -50,7 +50,7 @@ public class RRCPClient {
      * Tries to connect to robot server with server host and port
      */
     public void connect() {
-        
+
         try {
             s = new Socket(host, port);
             s.setSoTimeout(timeout);
@@ -71,70 +71,57 @@ public class RRCPClient {
      */
     public boolean isConnected() {
         return connected;
-    }
-    
-    public synchronized byte readByte() {
-        
+    } 
+
+    public synchronized byte readByte() { 
+
         try {
-            byte b = dis.readByte();
-            
+            byte b = dis.readByte(); 
+
             return b;
         } catch (IOException ex) {
             System.err.println("Error reading data from Robot Server: \"" + ex.getMessage()+"\"");
-        }
-        
+        } 
         return -1;
     }
     public synchronized boolean readBoolean() {
-        
         try {
             boolean b = dis.readBoolean();
-            
             return b;
         } catch (IOException ex) {
             System.err.println("Error reading data from Robot Server: \"" + ex.getMessage()+"\"");
             this.close();
         }
-        
         return false;
     }
     public synchronized int readInt() {
-        
         try {
             int i = dis.readInt();
-            
             return i;
         } catch (IOException ex) {
             System.err.println("Error reading data from Robot Server: \"" + ex.getMessage()+"\"");
             this.close();
         }
-        
         return -1;
     }
     public synchronized double readDouble() {
-        
         try {
             double d = dis.readDouble();
-            
             return d;
         } catch (IOException ex) {
             System.err.println("Error reading data from Robot Server: \"" + ex.getMessage()+"\"");
             this.close();
         }
-        
         return -1;
     }
     public synchronized String readString() {
-        
         try {
             String s = dis.readUTF();
-            
             return s;
         } catch (IOException ex) {
             System.err.println("Error reading data from Robot Server: \"" + ex.getMessage()+"\"");
             this.close();
         }
-        
         return "";
     }
     public synchronized void sendCommand(String command) {
@@ -203,32 +190,27 @@ public class RRCPClient {
     public void sendHeartBeat() {
             this.sendCommand("HEARTBEAT");
             if(this.readByte() == 21) this.connected = true;
-            else { 
-                this.close(); 
-            } 
+            else {
+                this.close();
+            }
     }
-    
     public InputStream getInputStream() throws IOException {
         return s.getInputStream();
     }
-    
     public OutputStream getOutputStream() throws IOException {
         return s.getOutputStream();
     }
-    
     private class HeartBeatThread implements Runnable {
-
         @Override
         public void run() {
-            while(isConnected()) {   
+            while(isConnected()) {
                     sendHeartBeat();
                 try {
-                    Thread.sleep(2000);
+                    Thread.sleep(1000);
                 } catch (InterruptedException ex) {
                     System.err.println("Error sleeping: \"" + ex.getMessage()+"\"");
                 }
             }
         }
-        
     }
 }

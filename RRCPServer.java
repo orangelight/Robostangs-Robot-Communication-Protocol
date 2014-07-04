@@ -1,3 +1,4 @@
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -104,7 +105,7 @@ public class RRCPServer implements Runnable{
                         System.out.println("READING: "+command);
                         this.lastHeartBeat = System.currentTimeMillis();
                         if(command.equals("HEARTBEAT")) {
-                            dos.write(21);
+                            RRCPCommandHandler.sendByte((byte)21, dos);
                             dos.flush();
                             this.lastHeartBeat = System.currentTimeMillis();
                         } else if(command.equals("QUIT")) { 

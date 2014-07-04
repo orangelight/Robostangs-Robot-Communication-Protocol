@@ -1,3 +1,4 @@
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -33,10 +34,16 @@ public class RRCPCommandHandler {
                 System.out.println(++i);
                 break;
             case "EXAMPLE COMMAND THAT SENDS DATA BACK":
-                RRCPCommandHandler.sendBoolean(true, dos);
+                sendBoolean(true, dos);
+                break;
+            case "EXAMPLE COMMAND THAT SENDS DATA BACK1":
+                sendDouble(0.99, dos);
                 break;
             case "EXAMPLE COMMAND THAT READS ARRAY OF DOUBLES":
                 System.out.println(readCommandWithDoubleArray(dis)[0]);
+                break;
+            case "ECHO":
+                sendString(readString(dis), dos);
                 break;
             default:
                 System.err.println("Command not recognized: \"" + s + "\"\nError incoming!!!");

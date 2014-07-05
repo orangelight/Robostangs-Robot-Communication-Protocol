@@ -2,8 +2,6 @@
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.Socket;
 
 /**
@@ -12,8 +10,8 @@ import java.net.Socket;
  */
 public class RRCPClient {
 
-    Socket s;
-    DataInputStream dis;
+    private Socket s;
+    private DataInputStream dis;
     private DataOutputStream dos;
     private String host;
     private int port;
@@ -199,6 +197,7 @@ public class RRCPClient {
             this.close();
         }
     }
+    
     public void sendCommandWithString(String command, String s) {
         setHeartBeatLock(true);
         try {
@@ -211,6 +210,7 @@ public class RRCPClient {
             this.close();
         }
     }
+    
     public void sendCommandWithDoubleArray(String command, double d[]) {
         setHeartBeatLock(true);
         try {
@@ -248,17 +248,7 @@ public class RRCPClient {
         }
     }
 
-    public InputStream getInputStream() throws IOException {
-        return s.getInputStream();
-    }
-
-    public OutputStream getOutputStream() throws IOException {
-        return s.getOutputStream();
-    }
-
     private class HeartBeatThread implements Runnable {
-
-        @Override
         public void run() {
             while (isConnected()) {
                 if (!heartBeatLock) {

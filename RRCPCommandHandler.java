@@ -2,8 +2,6 @@
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
@@ -19,19 +17,17 @@ public class RRCPCommandHandler {
         }
         return instance;
     }
+    
     /**
      * This class and method is what you edit to make commands
-     *
      * @param s Command
      * @param dis DataInputStream
      * @param dos DataOutputStream
      */
-    static int i = 0;
-
     public static void executeCommand(String s, DataInputStream dis, DataOutputStream dos) {
         switch (s) {
             case "EXAMPLE COMMAND":
-                System.out.println(++i);
+                System.out.println(0);
                 break;
             case "EXAMPLE COMMAND THAT SENDS DATA BACK":
                 sendBoolean(true, dos);
@@ -50,8 +46,7 @@ public class RRCPCommandHandler {
                 break;
         }
     }
-    //Crap for senteding a getting data
-
+    //Crap for sending & getting data from client
     private static double[] readCommandWithDoubleArray(DataInputStream dis) {
         try {
             int length = dis.readInt();
@@ -61,7 +56,7 @@ public class RRCPCommandHandler {
             }
             return d;
         } catch (IOException ex) {
-            Logger.getLogger(RRCPCommandHandler.class.getName()).log(Level.SEVERE, null, ex);
+            System.err.println("Error reading data from Client: \"" + ex.getMessage() + "\"");
         }
         return null;
     }
@@ -71,7 +66,7 @@ public class RRCPCommandHandler {
             byte b = dis.readByte();
             return b;
         } catch (IOException ex) {
-            System.err.println("Error reading data from Robot Server: \"" + ex.getMessage() + "\"");
+            System.err.println("Error reading data from Client: \"" + ex.getMessage() + "\"");
         }
         return -1;
     }
@@ -81,7 +76,7 @@ public class RRCPCommandHandler {
             boolean b = dis.readBoolean();
             return b;
         } catch (IOException ex) {
-            System.err.println("Error reading data from Robot Server: \"" + ex.getMessage() + "\"");
+            System.err.println("Error reading data from Client: \"" + ex.getMessage() + "\"");
         }
         return false;
     }
@@ -91,7 +86,7 @@ public class RRCPCommandHandler {
             int i = dis.readInt();
             return i;
         } catch (IOException ex) {
-            System.err.println("Error reading data from Robot Server: \"" + ex.getMessage() + "\"");
+            System.err.println("Error reading data from Client: \"" + ex.getMessage() + "\"");
         }
         return -1;
     }
@@ -101,7 +96,7 @@ public class RRCPCommandHandler {
             double d = dis.readDouble();
             return d;
         } catch (IOException ex) {
-            System.err.println("Error reading data from Robot Server: \"" + ex.getMessage() + "\"");
+            System.err.println("Error reading data from Client: \"" + ex.getMessage() + "\"");
         }
         return -1;
     }
@@ -111,7 +106,7 @@ public class RRCPCommandHandler {
             String s = dis.readUTF();
             return s;
         } catch (IOException ex) {
-            System.err.println("Error reading data from Robot Server: \"" + ex.getMessage() + "\"");
+            System.err.println("Error reading data from Client: \"" + ex.getMessage() + "\"");
         }
         return "";
     }
@@ -121,7 +116,7 @@ public class RRCPCommandHandler {
             dos.writeByte(b);
             dos.flush();
         } catch (IOException ex) {
-            Logger.getLogger(RRCPCommandHandler.class.getName()).log(Level.SEVERE, null, ex);
+            System.err.println("Error sending data to Client: \"" + ex.getMessage() + "\"");
         }
     }
 
@@ -130,7 +125,7 @@ public class RRCPCommandHandler {
             dos.writeInt(i);
             dos.flush();
         } catch (IOException ex) {
-            Logger.getLogger(RRCPCommandHandler.class.getName()).log(Level.SEVERE, null, ex);
+            System.err.println("Error sending data to Client: \"" + ex.getMessage() + "\"");
         }
     }
 
@@ -139,7 +134,7 @@ public class RRCPCommandHandler {
             dos.writeBoolean(b);
             dos.flush();
         } catch (IOException ex) {
-            Logger.getLogger(RRCPCommandHandler.class.getName()).log(Level.SEVERE, null, ex);
+            System.err.println("Error sending data to Client: \"" + ex.getMessage() + "\"");
         }
     }
 
@@ -148,7 +143,7 @@ public class RRCPCommandHandler {
             dos.writeDouble(d);
             dos.flush();
         } catch (IOException ex) {
-            Logger.getLogger(RRCPCommandHandler.class.getName()).log(Level.SEVERE, null, ex);
+            System.err.println("Error sending data to Client: \"" + ex.getMessage() + "\"");
         }
     }
 
@@ -157,7 +152,7 @@ public class RRCPCommandHandler {
             dos.writeUTF(s);
             dos.flush();
         } catch (IOException ex) {
-            Logger.getLogger(RRCPCommandHandler.class.getName()).log(Level.SEVERE, null, ex);
+            System.err.println("Error sending data to Client: \"" + ex.getMessage() + "\"");
         }
     }
 }

@@ -2,26 +2,25 @@
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import javax.microedition.io.Connector;
-import javax.microedition.io.ServerSocketConnection;
-import javax.microedition.io.SocketConnection;
+import java.net.ServerSocket;
+import java.net.Socket;
 
 /**
  *
  * @author Alex
  */
-public class RRCPServer implements Runnable {
+public class RRCPComputerTestServer implements Runnable {
     
     private static boolean listening = true;
     private static int port = 548;
     private static int timeout = 5000;
     private static Thread t;
-    private static RRCPServer instance;
-    private static ServerSocketConnection server;
+    private static RRCPComputerTestServer instance;
+    private static ServerSocket server;
 
-    public static RRCPServer getInstance() {
+    public static RRCPComputerTestServer getInstance() {
         if (instance == null) {
-            instance = new RRCPServer();
+            instance = new RRCPComputerTestServer();
         }
         return instance;
     }
@@ -30,13 +29,15 @@ public class RRCPServer implements Runnable {
         port = p;
     }
     
-    private RRCPServer() {
+    private RRCPComputerTestServer() {
         t = new Thread(this);
-        RRCPCommandHandler.getInstance();
+        RRCPComputerTestCommandHandler.getInstance();
     }
+    
     public static void startServer(int port, int timeout) {
-        RRCPServer.port = port;
-        RRCPServer.timeout = timeout;
+        RRCPComputerTestServer.port = port;
+        RRCPComputerTestServer.timeout = timeout;
+        listening = true;
         t.start();
     }
     
@@ -49,81 +50,86 @@ public class RRCPServer implements Runnable {
             listening = false;
             server.close();
         } catch (IOException ex) {
-            ex.printStackTrace();
+            System.err.println("Error closing server: \"" + ex.getMessage() + "\"");
         }
         System.out.println("SERVER SHUT DOWN");
     }
+    
     public void run() {
         try {
-            server = (ServerSocketConnection) Connector.open("serversocket://:" + RRCPServer.port);
+            server = new ServerSocket(this.port);
            while(listening) {
-               SocketConnection s = (SocketConnection) server.acceptAndOpen();
+               Socket s = server.accept();
                System.out.println("Client Connected");
                RRCPConnectionHandler ch = new RRCPConnectionHandler(s);
                Thread tch = new Thread(ch);
                tch.start();
            }
         } catch (IOException ex) {
-            ex.printStackTrace();
+            System.err.println("Error making client socket: \"" + ex.getMessage() + "\"");
         }
     }
-    
-    
+       
     private class RRCPConnectionHandler implements Runnable {
         
-        private SocketConnection s;
+        private Socket s;
         private DataInputStream dis;
         private DataOutputStream dos;
-        long lastHeartBeat;
-        public RRCPConnectionHandler(SocketConnection s) {
+        private long lastHeartBeat;
+        public RRCPConnectionHandler(Socket s) {
             this.s = s;
             try {
-                dis = this.s.openDataInputStream();
-                dos = this.s.openDataOutputStream();
+                dis = new DataInputStream(this.s.getInputStream());
+                dos = new DataOutputStream((this.s.getOutputStream()));
             } catch (IOException ex) {
-                ex.printStackTrace();
+                System.err.println("Error making data streams on ConnectionHandler: \"" + ex.getMessage() + "\"");
             }
         }
+
         public void run() {
             protocol();
             this.close();
         }
+        
         private void close() {
             try {
                 dis.close();
                 s.close();
+                RRCPComputerTestServer.listening = false;
             } catch (IOException ex) {
-                ex.printStackTrace();
+                System.err.println("Error closing ConnectionHandler: \"" + ex.getMessage() + "\"");
             }
         }
+        
         private void protocol() {
             try {
                 this.lastHeartBeat = System.currentTimeMillis();
-                while(System.currentTimeMillis() < this.lastHeartBeat+timeout) {
+                while(System.currentTimeMillis() < this.lastHeartBeat+timeout && RRCPComputerTestServer.listening) {
                     while(dis.available() > 0) {
                         String command = dis.readUTF();
                         System.out.println("READING: "+command);
                         this.lastHeartBeat = System.currentTimeMillis();
                         if(command.equals("HEARTBEAT")) {
-                            dos.write(21);
+                            RRCPComputerTestCommandHandler.sendByte((byte)21, dos);
                             dos.flush();
                             this.lastHeartBeat = System.currentTimeMillis();
+                        } else if(command.equals("QUIT")) { 
+                            this.close();
+                            break;
                         } else {
-                            RRCPCommandHandler.executeCommand(command, dis, dos);
+                            RRCPComputerTestCommandHandler.executeCommand(command, dis, dos);
                         }
                     }
                     try {
                         Thread.sleep(100);
                     } catch (InterruptedException ex) {
-                        ex.printStackTrace();
+                        System.err.println("Error sleeping: \"" + ex.getMessage() + "\"");
                     }
                 }
                 System.err.println("Client timed out!!!");
             } catch (IOException ex) {
-                ex.printStackTrace();
-            }
-                    
-        }
-        
+                System.err.println("Error reading data from client: \"" + ex.getMessage() + "\"");
+            }         
+        }        
     }
 }

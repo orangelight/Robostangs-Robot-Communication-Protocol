@@ -3,18 +3,17 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
-
 /**
  *
  * @author Alex
  */
-public class RRCPCommandHandler {
+public class RRCPComputerTestCommandHandler {
 
-    private static RRCPCommandHandler instance;
+    private static RRCPComputerTestCommandHandler instance;
 
-    public static RRCPCommandHandler getInstance() {
+    public static RRCPComputerTestCommandHandler getInstance() {
         if (instance == null) {
-            instance = new RRCPCommandHandler();
+            instance = new RRCPComputerTestCommandHandler();
         }
         return instance;
     }
@@ -26,12 +25,25 @@ public class RRCPCommandHandler {
      * @param dos DataOutputStream
      */
     public static void executeCommand(String s, DataInputStream dis, DataOutputStream dos) {
-        if(s.equals("EXAMPLE COMMAND")) {
-            System.out.println("TEST COMMAND");
-        } else if(s.equals("ECHO")) {
-            sendString(readString(dis), dos);
-        } else {
-            System.err.println("Command not recognized: \"" + s + "\"\nError incoming!!!");
+        switch (s) {
+            case "EXAMPLE COMMAND":
+                System.out.println(0);
+                break;
+            case "EXAMPLE COMMAND THAT SENDS DATA BACK":
+                sendBoolean(true, dos);
+                break;
+            case "EXAMPLE COMMAND THAT SENDS DATA BACK1":
+                sendDouble(0.99, dos);
+                break;
+            case "EXAMPLE COMMAND THAT READS ARRAY OF DOUBLES":
+                System.out.println(readCommandWithDoubleArray(dis)[0]);
+                break;
+            case "ECHO":
+                sendString(readString(dis), dos);
+                break;
+            default:
+                System.err.println("Command not recognized: \"" + s + "\"\nError incoming!!!");
+                break;
         }
     }
     //Crap for sending & getting data from client

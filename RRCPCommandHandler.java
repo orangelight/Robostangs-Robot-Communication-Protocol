@@ -34,7 +34,14 @@ public class RRCPCommandHandler {
             System.err.println("Command not recognized: \"" + s + "\"\nError incoming!!!");
         }
     }
-    //Crap for sending & getting data from client
+    
+    public static void onSocketClose() {
+        
+    }
+    /**
+     * Crap for sending & getting data from client
+     * Don't delete anything under here!!!
+    **/
     private static double[] readCommandWithDoubleArray(DataInputStream dis) {
         try {
             int length = dis.readInt();

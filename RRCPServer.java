@@ -128,6 +128,7 @@ public class RRCPServer implements Runnable {
                     }
                 }
                 System.err.println("Client timed out!!!");
+                RRCPCommandHandler.onSocketClose();
             } catch (IOException ex) {
                 System.err.println("Error reading data from client: \"" + ex.getMessage() + "\"");
             }         

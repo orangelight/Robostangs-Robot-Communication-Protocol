@@ -37,6 +37,10 @@ public class RRCPComputerTestCommandHandler {
                 break;
         }
     }
+    
+    public static void onSocketClose() {
+        
+    }
     /**
      * Crap for sending & getting data from client
      * Don't delete anything under here!!!

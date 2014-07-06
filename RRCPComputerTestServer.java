@@ -127,6 +127,7 @@ public class RRCPComputerTestServer implements Runnable {
                     }
                 }
                 System.err.println("Client timed out!!!");
+                RRCPComputerTestCommandHandler.onSocketClose();
             } catch (IOException ex) {
                 System.err.println("Error reading data from client: \"" + ex.getMessage() + "\"");
             }         

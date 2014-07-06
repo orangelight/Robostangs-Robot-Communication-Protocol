@@ -34,9 +34,11 @@ public class RRCPServer implements Runnable {
         t = new Thread(this);
         RRCPCommandHandler.getInstance();
     }
+    
     public static void startServer(int port, int timeout) {
         RRCPServer.port = port;
         RRCPServer.timeout = timeout;
+        listening = true;
         t.start();
     }
     
@@ -49,13 +51,14 @@ public class RRCPServer implements Runnable {
             listening = false;
             server.close();
         } catch (IOException ex) {
-            ex.printStackTrace();
+            System.err.println("Error closing server: \"" + ex.getMessage() + "\"");
         }
         System.out.println("SERVER SHUT DOWN");
     }
+    
     public void run() {
         try {
-            server = (ServerSocketConnection) Connector.open("serversocket://:" + RRCPServer.port);
+           server = (ServerSocketConnection) Connector.open("serversocket://:" + RRCPServer.port);
            while(listening) {
                SocketConnection s = (SocketConnection) server.acceptAndOpen();
                System.out.println("Client Connected");
@@ -64,50 +67,56 @@ public class RRCPServer implements Runnable {
                tch.start();
            }
         } catch (IOException ex) {
-            ex.printStackTrace();
+            System.err.println("Error making client socket: \"" + ex.getMessage() + "\"");
         }
     }
-    
-    
+       
     private class RRCPConnectionHandler implements Runnable {
         
         private SocketConnection s;
         private DataInputStream dis;
         private DataOutputStream dos;
-        long lastHeartBeat;
+        private long lastHeartBeat;
         public RRCPConnectionHandler(SocketConnection s) {
             this.s = s;
             try {
-                dis = this.s.openDataInputStream();
-                dos = this.s.openDataOutputStream();
+                dis = new DataInputStream(this.s.openInputStream());
+                dos = new DataOutputStream((this.s.openOutputStream()));
             } catch (IOException ex) {
-                ex.printStackTrace();
+                System.err.println("Error making data streams on ConnectionHandler: \"" + ex.getMessage() + "\"");
             }
         }
+
         public void run() {
             protocol();
             this.close();
         }
+        
         private void close() {
             try {
                 dis.close();
                 s.close();
+                RRCPServer.listening = false;
             } catch (IOException ex) {
-                ex.printStackTrace();
+                System.err.println("Error closing ConnectionHandler: \"" + ex.getMessage() + "\"");
             }
         }
+        
         private void protocol() {
             try {
                 this.lastHeartBeat = System.currentTimeMillis();
-                while(System.currentTimeMillis() < this.lastHeartBeat+timeout) {
+                while(System.currentTimeMillis() < this.lastHeartBeat+timeout && RRCPServer.listening) {
                     while(dis.available() > 0) {
                         String command = dis.readUTF();
                         System.out.println("READING: "+command);
                         this.lastHeartBeat = System.currentTimeMillis();
                         if(command.equals("HEARTBEAT")) {
-                            dos.write(21);
+                            RRCPCommandHandler.sendByte((byte)21, dos);
                             dos.flush();
                             this.lastHeartBeat = System.currentTimeMillis();
+                        } else if(command.equals("QUIT")) { 
+                            this.close();
+                            break;
                         } else {
                             RRCPCommandHandler.executeCommand(command, dis, dos);
                         }
@@ -115,15 +124,13 @@ public class RRCPServer implements Runnable {
                     try {
                         Thread.sleep(100);
                     } catch (InterruptedException ex) {
-                        ex.printStackTrace();
+                        System.err.println("Error sleeping: \"" + ex.getMessage() + "\"");
                     }
                 }
                 System.err.println("Client timed out!!!");
             } catch (IOException ex) {
-                ex.printStackTrace();
-            }
-                    
-        }
-        
+                System.err.println("Error reading data from client: \"" + ex.getMessage() + "\"");
+            }         
+        }        
     }
 }

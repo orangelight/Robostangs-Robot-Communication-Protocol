@@ -29,15 +29,6 @@ public class RRCPComputerTestCommandHandler {
             case "EXAMPLE COMMAND":
                 System.out.println(0);
                 break;
-            case "EXAMPLE COMMAND THAT SENDS DATA BACK":
-                sendBoolean(true, dos);
-                break;
-            case "EXAMPLE COMMAND THAT SENDS DATA BACK1":
-                sendDouble(0.99, dos);
-                break;
-            case "EXAMPLE COMMAND THAT READS ARRAY OF DOUBLES":
-                System.out.println(readCommandWithDoubleArray(dis)[0]);
-                break;
             case "ECHO":
                 sendString(readString(dis), dos);
                 break;
@@ -46,7 +37,10 @@ public class RRCPComputerTestCommandHandler {
                 break;
         }
     }
-    //Crap for sending & getting data from client
+    /**
+     * Crap for sending & getting data from client
+     * Don't delete anything under here!!!
+    **/
     private static double[] readCommandWithDoubleArray(DataInputStream dis) {
         try {
             int length = dis.readInt();

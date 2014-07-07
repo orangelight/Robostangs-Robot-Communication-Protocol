@@ -31,7 +31,7 @@ public class RRCPComputerTestServer implements Runnable {
     
     private RRCPComputerTestServer() {
         t = new Thread(this);
-        RRCPComputerTestCommandHandler.getInstance();
+        
     }
     
     public static void startServer(int port, int timeout) {
@@ -107,10 +107,9 @@ public class RRCPComputerTestServer implements Runnable {
                 while(System.currentTimeMillis() < this.lastHeartBeat+timeout && RRCPComputerTestServer.listening) {
                     while(dis.available() > 0) {
                         String command = dis.readUTF();
-                        System.out.println("READING: "+command);
                         this.lastHeartBeat = System.currentTimeMillis();
                         if(command.equals("HEARTBEAT")) {
-                            RRCPComputerTestCommandHandler.sendByte((byte)21, dos);
+                            dos.write((byte)21);
                             dos.flush();
                             this.lastHeartBeat = System.currentTimeMillis();
                         } else if(command.equals("QUIT")) { 

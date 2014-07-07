@@ -31,7 +31,6 @@ public class RRCPComputerTestServer implements Runnable {
     
     private RRCPComputerTestServer() {
         t = new Thread(this);
-        
     }
     
     public static void startServer(int port, int timeout) {
@@ -95,7 +94,6 @@ public class RRCPComputerTestServer implements Runnable {
             try {
                 dis.close();
                 s.close();
-                RRCPComputerTestServer.listening = false;
             } catch (IOException ex) {
                 System.err.println("Error closing ConnectionHandler: \"" + ex.getMessage() + "\"");
             }
@@ -112,6 +110,7 @@ public class RRCPComputerTestServer implements Runnable {
                             dos.write((byte)21);
                             dos.flush();
                             this.lastHeartBeat = System.currentTimeMillis();
+                            System.out.println("Heartbeat Received");
                         } else if(command.equals("QUIT")) { 
                             this.close();
                             break;

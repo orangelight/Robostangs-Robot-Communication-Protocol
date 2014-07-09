@@ -40,12 +40,12 @@ public class RobotTemplate extends IterativeRobot {
     static CANJaguar jag1, jag2;
     static int left = 0, right = 0;
     public static void setMotors(int l, int r) {
-        left = 1;
+        left = l;
         right = r;
     }
     private static void driveMotors(int l, int r) {
         try {
-            jag1.setX(l);
+            jag1.setX(-l);
             jag2.setX(r);
         } catch (CANTimeoutException ex) {
             ex.printStackTrace();

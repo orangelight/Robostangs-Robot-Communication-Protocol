@@ -114,6 +114,10 @@ public class RRCPComputerTestServer implements Runnable {
                         } else if(command.equals("QUIT")) { 
                             this.close();
                             break;
+                        } else if(command.equals("BDAY")) { 
+                            dos.write((byte)16);
+							dos.flush();
+                            break;
                         } else {
                             RRCPComputerTestCommandHandler.executeCommand(command, dis, dos);
                         }

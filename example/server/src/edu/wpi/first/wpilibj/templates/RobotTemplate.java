@@ -11,6 +11,9 @@ package edu.wpi.first.wpilibj.templates;
 import edu.wpi.first.wpilibj.CANJaguar;
 import edu.wpi.first.wpilibj.IterativeRobot;
 import edu.wpi.first.wpilibj.can.CANTimeoutException;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 
 /**
  * The VM is configured to automatically run this class, and to call the
@@ -38,10 +41,10 @@ public class RobotTemplate extends IterativeRobot {
         RRCPServer.startServer();
     }
     static CANJaguar jag1, jag2;
-    static int left = 0, right = 0;
+    static int leftnum = 0, rightnum = 0;
     public static void setMotors(int l, int r) {
-        left = l;
-        right = r;
+        leftnum = l;
+        rightnum = r;
     }
     private static void driveMotors(int l, int r) {
         try {
@@ -61,7 +64,9 @@ public class RobotTemplate extends IterativeRobot {
      * This function is called periodically during operator control
      */
     public void teleopPeriodic() {
-        driveMotors(left, right);
+        driveMotors(leftnum, rightnum);
+        SmartDashboard.putNumber("l", leftnum);
+        SmartDashboard.putNumber("r", rightnum);
     }
     
     /**
@@ -70,5 +75,31 @@ public class RobotTemplate extends IterativeRobot {
     public void testPeriodic() {
     
     }
+    
+    static RRCPCommand forward = new RRCPCommand(("FORWARD")) {
+        public void exacute(DataInputStream dis, DataOutputStream dos) {
+            setMotors(1, 1);
+        }
+    };
+    static RRCPCommand backward = new RRCPCommand(("BACKWARD")) {
+        public void exacute(DataInputStream dis, DataOutputStream dos) {
+            setMotors(-1, -1);
+        }
+    };
+    static RRCPCommand right = new RRCPCommand(("RIGHT")) {
+        public void exacute(DataInputStream dis, DataOutputStream dos) {
+            setMotors(-1, 1);
+        }
+    };
+    static RRCPCommand left = new RRCPCommand(("LEFT")) {
+        public void exacute(DataInputStream dis, DataOutputStream dos) {
+            setMotors(1, -1);
+        }
+    };
+    static RRCPCommand stop = new RRCPCommand(("STOP")) {
+        public void exacute(DataInputStream dis, DataOutputStream dos) {
+            setMotors(0, 0);
+        }
+    };
     
 }

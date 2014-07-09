@@ -1,4 +1,5 @@
 
+import edu.wpi.first.wpilibj.Timer;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -32,7 +33,6 @@ public class RRCPServer implements Runnable {
     
     private RRCPServer() {
         t = new Thread(this);
-        RRCPCommandHandler.getInstance();
     }
     
     public static void startServer(int port, int timeout) {
@@ -96,7 +96,6 @@ public class RRCPServer implements Runnable {
             try {
                 dis.close();
                 s.close();
-                RRCPServer.listening = false;
             } catch (IOException ex) {
                 System.err.println("Error closing ConnectionHandler: \"" + ex.getMessage() + "\"");
             }
@@ -108,12 +107,12 @@ public class RRCPServer implements Runnable {
                 while(System.currentTimeMillis() < this.lastHeartBeat+timeout && RRCPServer.listening) {
                     while(dis.available() > 0) {
                         String command = dis.readUTF();
-                        System.out.println("READING: "+command);
                         this.lastHeartBeat = System.currentTimeMillis();
                         if(command.equals("HEARTBEAT")) {
-                            RRCPCommandHandler.sendByte((byte)21, dos);
+                            dos.write((byte)21);
                             dos.flush();
                             this.lastHeartBeat = System.currentTimeMillis();
+                            System.out.println("Heartbeat Received");
                         } else if(command.equals("QUIT")) { 
                             this.close();
                             break;

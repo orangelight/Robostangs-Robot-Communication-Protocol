@@ -22,7 +22,7 @@ public abstract class RRCPCommand {
     }
     
 
-    public byte readByte(DataInputStream dis) {
+    protected byte readByte(DataInputStream dis) {
         try {
             byte b = dis.readByte();
             return b;
@@ -32,7 +32,7 @@ public abstract class RRCPCommand {
         return -1;
     }
 
-    public static boolean readBoolean(DataInputStream dis) {
+    protected boolean readBoolean(DataInputStream dis) {
         try {
             boolean b = dis.readBoolean();
             return b;
@@ -42,7 +42,7 @@ public abstract class RRCPCommand {
         return false;
     }
 
-    public static int readInt(DataInputStream dis) {
+    protected int readInt(DataInputStream dis) {
         try {
             int i = dis.readInt();
             return i;
@@ -52,7 +52,7 @@ public abstract class RRCPCommand {
         return -1;
     }
 
-    public static double readDouble(DataInputStream dis) {
+    protected double readDouble(DataInputStream dis) {
         try {
             double d = dis.readDouble();
             return d;
@@ -62,7 +62,7 @@ public abstract class RRCPCommand {
         return -1;
     }
 
-    public static String readString(DataInputStream dis) {
+    protected String readString(DataInputStream dis) {
         try {
             String s = dis.readUTF();
             return s;
@@ -71,9 +71,24 @@ public abstract class RRCPCommand {
         }
         return "";
     }
-
-    public static void sendByte(byte b, DataOutputStream dos) {
+    
+    protected static double[] readCommandWithDoubleArray(DataInputStream dis) {
         try {
+            int length = dis.readInt();
+            double[] d = new double[length];
+            for (int i = 0; i < length; i++) {
+                d[i] = dis.readDouble();
+            }
+            return d;
+        } catch (IOException ex) {
+            System.err.println("Error reading data from Client: \"" + ex.getMessage() + "\"");
+        }
+        return null;
+    }
+    
+    protected void sendByte(byte b, DataOutputStream dos) {
+        try {
+            dos.writeByte(1);
             dos.writeByte(b);
             dos.flush();
         } catch (IOException ex) {
@@ -81,8 +96,9 @@ public abstract class RRCPCommand {
         }
     }
 
-    public static void sendInt(int i, DataOutputStream dos) {
+    protected void sendInt(int i, DataOutputStream dos) {
         try {
+            dos.writeByte(2);
             dos.writeInt(i);
             dos.flush();
         } catch (IOException ex) {
@@ -90,8 +106,9 @@ public abstract class RRCPCommand {
         }
     }
 
-    public static void sendBoolean(boolean b, DataOutputStream dos) {
+    protected void sendBoolean(boolean b, DataOutputStream dos) {
         try {
+            dos.writeByte(3);
             dos.writeBoolean(b);
             dos.flush();
         } catch (IOException ex) {
@@ -99,8 +116,9 @@ public abstract class RRCPCommand {
         }
     }
 
-    public static void sendDouble(double d, DataOutputStream dos) {
+    protected void sendDouble(double d, DataOutputStream dos) {
         try {
+            dos.writeByte(4);
             dos.writeDouble(d);
             dos.flush();
         } catch (IOException ex) {
@@ -108,12 +126,14 @@ public abstract class RRCPCommand {
         }
     }
 
-    public static void sendString(String s, DataOutputStream dos) {
+    protected void sendString(String s, DataOutputStream dos) {
         try {
+            dos.writeByte(5);
             dos.writeUTF(s);
             dos.flush();
         } catch (IOException ex) {
             System.err.println("Error sending data to Client: \"" + ex.getMessage() + "\"");
         }
     }
+    
 }

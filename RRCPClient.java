@@ -2,7 +2,12 @@
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.net.Socket;
+import java.nio.ByteBuffer;
+import java.util.LinkedList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -19,6 +24,7 @@ public class RRCPClient {
     private boolean connected = false;
     private Thread heartBeatThread;
     private boolean heartBeatLock = false;
+    PacketHandler ph;
 
     /**
      * Sets the robot server IP Sets port to default port (548)
@@ -59,8 +65,10 @@ public class RRCPClient {
             dis = new DataInputStream(s.getInputStream());
             dos = new DataOutputStream(s.getOutputStream());
             connected = true;
+            ph = new PacketHandler();
             heartBeatThread = new Thread(new HeartBeatThread());
             heartBeatThread.start();
+
         } catch (IOException ex) {
             System.err.println("Error Connecting to Robot Server: \"" + ex.getMessage() + "\"");
             this.close();
@@ -80,7 +88,7 @@ public class RRCPClient {
         this.heartBeatLock = b;
     }
 
-    public synchronized byte readByte() {
+    private byte readByte() {
         setHeartBeatLock(true);
         try {
             byte b = dis.readByte();
@@ -92,21 +100,7 @@ public class RRCPClient {
         return -1;
     }
 
-    public boolean readBoolean() {
-        setHeartBeatLock(true);
-        try {
-            boolean b = dis.readBoolean();
-            setHeartBeatLock(false);
-            return b;
-        } catch (IOException ex) {
-            System.err.println("Error reading data from Robot Server: \"" + ex.getMessage() + "\"");
-            this.close();
-        }
-
-        return false;
-    }
-
-    public int readInt() {
+    private int readInt() {
         setHeartBeatLock(true);
         try {
             int i = dis.readInt();
@@ -120,7 +114,7 @@ public class RRCPClient {
         return -1;
     }
 
-    public double readDouble() {
+    private double readDouble() {
         setHeartBeatLock(true);
         try {
             double d = dis.readDouble();
@@ -133,7 +127,7 @@ public class RRCPClient {
         return -1.0;
     }
 
-    public String readString() {
+    private String readString() {
         setHeartBeatLock(true);
         try {
             String s = dis.readUTF();
@@ -197,7 +191,7 @@ public class RRCPClient {
             this.close();
         }
     }
-    
+
     public void sendCommandWithString(String command, String s) {
         setHeartBeatLock(true);
         try {
@@ -210,7 +204,7 @@ public class RRCPClient {
             this.close();
         }
     }
-    
+
     public void sendCommandWithDoubleArray(String command, double d[]) {
         setHeartBeatLock(true);
         try {
@@ -239,23 +233,139 @@ public class RRCPClient {
         }
     }
 
-    public void sendHeartBeat() {
+    private void sendHeartBeat() {
         this.sendCommand("HEARTBEAT");
-        if (this.readByte() == 21) {
+        if (ph.getHeartBeat().getID() == 21) {
             this.connected = true;
         } else {
             this.close();
         }
     }
 
-    private class HeartBeatThread implements Runnable {
+    public byte readBytePacket() {
+        return ph.getPacket().getData()[0];
+    }
+    public boolean readBooleanPacket() {
+        return (ph.getPacket().getData()[0]==0) ? false : true;
+    }
+    public int readIntPacket() {
+        return new BigInteger(ph.getPacket().getData()).intValue();
+    }
+    public double readDoublePacket() {
+        return ByteBuffer.wrap(ph.getPacket().getData()).getDouble();
+    }
+    public String readStringPacket() {
+        return new String(ph.getPacket().getData());
+    }
+
+    public class PacketHandler implements Runnable {
+
+        LinkedList<Packet> packetQueue;
+        LinkedList<Packet> beatQueue;
+        Thread t;
+
+        public PacketHandler() {
+            packetQueue = new LinkedList<Packet>();
+            beatQueue = new LinkedList<Packet>();
+            t = new Thread(this);
+            t.start();
+        }
+
         public void run() {
             while (isConnected()) {
-                if (!heartBeatLock) {
-                    sendHeartBeat();
+                try {
+                    while (dis.available() > 0) {
+                        new Packet(readByte());
+                    }
+                } catch (IOException ex) {
+                    Logger.getLogger(RRCPClient.class.getName()).log(Level.SEVERE, null, ex);
                 }
                 try {
-                    Thread.sleep(1000);
+                    Thread.sleep(50);
+                } catch (InterruptedException ex) {
+                    System.err.println("Error sleeping: \"" + ex.getMessage() + "\"");
+                }
+            }
+        }
+
+        Packet getHeartBeat() {
+            int i = 0;
+            while (beatQueue.size() == 0) {
+                try {
+                    Thread.sleep(10);
+                } catch (InterruptedException ex) {
+                    System.err.println("Error sleeping: \"" + ex.getMessage() + "\"");
+                }
+                i++;
+            }
+            System.out.println(i + " Trys");
+            Packet p = beatQueue.getFirst();
+            beatQueue.removeFirst();
+            return p;
+        }
+
+        Packet getPacket() {
+            while (packetQueue.size() == 0) {
+                try {
+                    Thread.sleep(5);
+                } catch (InterruptedException ex) {
+                    System.err.println("Error sleeping: \"" + ex.getMessage() + "\"");
+                }
+            }
+            Packet p = packetQueue.getFirst();
+            packetQueue.removeFirst();
+            return p;
+        }
+
+        public class Packet {
+
+            private byte id;
+            public byte[] data;
+
+            public Packet(byte id) {
+                this.id = id;
+                if (id == 21) {
+                    beatQueue.addFirst(this);
+                } else if (id == 1) {
+                    data = new byte[1];
+                    data[0] = readByte();
+                    packetQueue.addFirst(this);
+                } else if (id == 2) {
+                    data = ByteBuffer.allocate(4).putInt(readInt()).array();
+                    packetQueue.addFirst(this);
+                } else if (id == 3) {
+                    data = new byte[1];
+                    data[0] = readByte();
+                    packetQueue.addFirst(this);
+                } else if (id == 4) {
+                    data = ByteBuffer.allocate(8).putDouble(readDouble()).array();
+                    packetQueue.addFirst(this);
+                } else if (id == 5) {
+                    data = readString().getBytes();
+                    packetQueue.addFirst(this);
+                } else {
+                    data = null;
+                    System.err.println("Packet not reconized!!!");
+                }
+            }
+
+            public byte[] getData() {
+                return data;
+            }
+
+            public byte getID() {
+                return id;
+            }
+        }
+    }
+
+    private class HeartBeatThread implements Runnable {
+
+        public void run() {
+            while (isConnected()) {
+                sendHeartBeat();
+                try {
+                    Thread.sleep(2000);
                 } catch (InterruptedException ex) {
                     System.err.println("Error sleeping: \"" + ex.getMessage() + "\"");
                 }

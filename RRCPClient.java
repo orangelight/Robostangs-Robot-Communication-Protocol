@@ -20,7 +20,7 @@ public class RRCPClient {
     private DataOutputStream dos;
     private String host;
     private int port;
-    private int timeout = 20000;
+    private int timeout = 20;
     private boolean connected = false;
     private Thread heartBeatThread;
     private static PacketHandler ph;
@@ -60,7 +60,6 @@ public class RRCPClient {
     public void connect() {
         try {
             s = new Socket(host, port);
-            s.setSoTimeout(timeout);
             dis = new DataInputStream(s.getInputStream());
             dos = new DataOutputStream(s.getOutputStream());
             connected = true;
@@ -222,7 +221,13 @@ public class RRCPClient {
             }
         }
         Packet getHeartBeat() {
+            int i = 0;
             while (beatQueue.size() == 0) {
+                ++i;
+                if(i > timeout) {
+                    System.err.println("SERVER DID NOT RESPOND!!!");
+                    return new Packet((byte)100);
+                }
                 try {
                     Thread.sleep(10);
                 } catch (InterruptedException ex) {
@@ -269,6 +274,8 @@ public class RRCPClient {
                 } else if (id == 5) {
                     data = readString().getBytes();
                     packetQueue.addFirst(this);
+                } else if (id==100) {
+                    
                 } else {
                     data = null;
                     System.err.println("Packet not reconized!!!");

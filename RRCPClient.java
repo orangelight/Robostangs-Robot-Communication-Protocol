@@ -6,8 +6,6 @@ import java.math.BigInteger;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 import java.util.LinkedList;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
@@ -23,7 +21,7 @@ public class RRCPClient {
     private int timeout = 20;
     private boolean connected = false;
     private Thread heartBeatThread;
-    private static PacketHandler ph;
+    private PacketHandler ph;
 
     /**
      * Sets the robot server IP Sets port to default port (548)
@@ -211,7 +209,7 @@ public class RRCPClient {
                         new Packet(readByte());
                     }
                 } catch (IOException ex) {
-                    Logger.getLogger(RRCPClient.class.getName()).log(Level.SEVERE, null, ex);
+                    System.err.println("Error reading packet ID from robot server: \"" + ex.getMessage() + "\"");
                 }
                 try {
                     Thread.sleep(50);
@@ -239,7 +237,13 @@ public class RRCPClient {
             return p;
         }
         Packet getPacket() {
+            int i = 0;
             while (packetQueue.size() == 0) {
+                ++i;
+                if(i>timeout+15) {
+                    System.err.println("Could not find packet! Packet lost!");
+                    return null;
+                }
                 try {
                     Thread.sleep(5);
                 } catch (InterruptedException ex) {
@@ -333,6 +337,7 @@ public class RRCPClient {
             return "";
         }
     }
+    
     private class HeartBeatThread implements Runnable {
         public void run() {
             while (isConnected()) {

@@ -72,7 +72,7 @@ public abstract class RRCPCommand {
         return "";
     }
     
-    protected static double[] readCommandWithDoubleArray(DataInputStream dis) {
+    protected static double[] sendCommandWithDoubleArray(DataInputStream dis) {
         try {
             int length = dis.readInt();
             double[] d = new double[length];
@@ -133,6 +133,20 @@ public abstract class RRCPCommand {
             dos.flush();
         } catch (IOException ex) {
             System.err.println("Error sending data to Client: \"" + ex.getMessage() + "\"");
+        }
+    }
+    
+    protected void sendDoubleArray(double d[], DataOutputStream dos) {
+        try {
+            int length = d.length;
+            dos.write(6);
+            dos.writeInt(length);
+            for (int i = 0; i < d.length; i++) {
+                dos.writeDouble(d[i]);
+            }
+            dos.flush();
+        } catch (IOException ex) {
+            System.err.println("Error reading data from Client: \"" + ex.getMessage() + "\"");
         }
     }
     

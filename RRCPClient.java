@@ -2,9 +2,7 @@
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.math.BigInteger;
 import java.net.Socket;
-import java.nio.ByteBuffer;
 import java.util.LinkedList;
 
 /**
@@ -84,59 +82,61 @@ public class RRCPClient {
         try {
             dos.writeUTF(command);
             dos.flush();
-            
+
         } catch (IOException ex) {
             System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
             this.close();
         }
     }
+
     public void sendCommandWithDouble(String command, double d) {
         try {
             dos.writeUTF(command);
             dos.writeDouble(d);
             dos.flush();
-            
+
         } catch (IOException ex) {
             System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
             this.close();
         }
     }
-    
+
     public void sendCommandWithInt(String command, int i) {
         try {
             dos.writeUTF(command);
             dos.writeInt(i);
             dos.flush();
-            
+
         } catch (IOException ex) {
             System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
             this.close();
         }
     }
+
     public void sendCommandWithBoolean(String command, boolean b) {
         try {
             dos.writeUTF(command);
             dos.writeBoolean(b);
             dos.flush();
-            
+
         } catch (IOException ex) {
             System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
             this.close();
         }
     }
-    
+
     public void sendCommandWithString(String command, String s) {
         try {
             dos.writeUTF(command);
             dos.writeUTF(s);
             dos.flush();
-            
+
         } catch (IOException ex) {
             System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
             this.close();
         }
     }
-    
+
     public void sendCommandWithDoubleArray(String command, double d[]) {
         try {
             dos.writeUTF(command);
@@ -145,13 +145,13 @@ public class RRCPClient {
                 dos.writeDouble(d[i]);
             }
             dos.flush();
-            
+
         } catch (IOException ex) {
             System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
             this.close();
         }
     }
-    
+
     public void close() {
         try {
             this.connected = false;
@@ -163,7 +163,7 @@ public class RRCPClient {
             this.close();
         }
     }
-    
+
     private void sendHeartBeat() {
         this.sendCommand("HEARTBEAT");
         if (ph.getHeartBeat().getID() == 21) {
@@ -172,36 +172,44 @@ public class RRCPClient {
             this.close();
         }
     }
-    
+
     public byte readBytePacket() {
-        return ph.getPacket().getData()[0];
+        return (byte) ph.getPacket().getData();
     }
-    
+
     public boolean readBooleanPacket() {
-        return (ph.getPacket().getData()[0] == 0) ? false : true;
+        return ((byte)ph.getPacket().getData() == 1) ? true : false;
     }
+
     public int readIntPacket() {
-        return new BigInteger(ph.getPacket().getData()).intValue();
+        return (int) ph.getPacket().getData();
     }
-    
+
     public double readDoublePacket() {
-        return ByteBuffer.wrap(ph.getPacket().getData()).getDouble();
+        return (double) ph.getPacket().getData();
     }
-    
+
     public String readStringPacket() {
-        return new String(ph.getPacket().getData());
+        return (String) ph.getPacket().getData();
     }
-    
+
+    public double[] readDoubleArrayPacket() {
+        return (double[]) ph.getPacket().getData();
+    }
+
     public class PacketHandler implements Runnable {
+
         private LinkedList<Packet> packetQueue;
         private LinkedList<Packet> beatQueue;
         private Thread t;
+
         public PacketHandler() {
             packetQueue = new LinkedList<Packet>();
             beatQueue = new LinkedList<Packet>();
             t = new Thread(this);
             t.start();
         }
+
         public void run() {
             while (isConnected()) {
                 try {
@@ -218,13 +226,14 @@ public class RRCPClient {
                 }
             }
         }
+
         Packet getHeartBeat() {
             int i = 0;
             while (beatQueue.size() == 0) {
                 ++i;
-                if(i > timeout) {
+                if (i > timeout) {
                     System.err.println("SERVER DID NOT RESPOND!!!");
-                    return new Packet((byte)100);
+                    return new Packet((byte) 100);
                 }
                 try {
                     Thread.sleep(10);
@@ -236,11 +245,12 @@ public class RRCPClient {
             beatQueue.removeFirst();
             return p;
         }
+
         Packet getPacket() {
             int i = 0;
             while (packetQueue.size() == 0) {
                 ++i;
-                if(i>timeout+15) {
+                if (i > timeout + 15) {
                     System.err.println("Could not find packet! Packet lost!");
                     return null;
                 }
@@ -254,58 +264,63 @@ public class RRCPClient {
             packetQueue.removeFirst();
             return p;
         }
+
         public class Packet {
+
             private byte id;
-            public byte[] data;
+            public Object data;
+
             public Packet(byte id) {
                 this.id = id;
                 if (id == 21) {
                     beatQueue.addFirst(this);
                 } else if (id == 1) {
-                    data = new byte[1];
-                    data[0] = readByte();
+                    data = readByte();
                     packetQueue.addFirst(this);
                 } else if (id == 2) {
-                    data = ByteBuffer.allocate(4).putInt(readInt()).array();
+                    data = readInt();
                     packetQueue.addFirst(this);
                 } else if (id == 3) {
-                    data = new byte[1];
-                    data[0] = readByte();
+                    data = readByte();
                     packetQueue.addFirst(this);
                 } else if (id == 4) {
-                    data = ByteBuffer.allocate(8).putDouble(readDouble()).array();
+                    data = readDouble();
                     packetQueue.addFirst(this);
                 } else if (id == 5) {
-                    data = readString().getBytes();
+                    data = readString();
                     packetQueue.addFirst(this);
-                } else if (id==100) {
-                    
+                } else if (id == 6) {
+                    data = readDoubleArray();
+                    packetQueue.addFirst(this);
+                } else if (id == 100) {
                 } else {
                     data = null;
                     System.err.println("Packet not reconized!!!");
                 }
             }
-            public byte[] getData() {
+
+            public Object getData() {
                 return data;
             }
+
             public byte getID() {
                 return id;
             }
         }
+
         private byte readByte() {
             try {
                 byte b = dis.readByte();
-                
                 return b;
             } catch (IOException ex) {
                 System.err.println("Error reading data from Robot Server: \"" + ex.getMessage() + "\"");
             }
             return -1;
         }
+
         private int readInt() {
             try {
                 int i = dis.readInt();
-                
                 return i;
             } catch (IOException ex) {
                 System.err.println("Error reading data from Robot Server: \"" + ex.getMessage() + "\"");
@@ -313,11 +328,11 @@ public class RRCPClient {
             }
             return -1;
         }
+
         private double readDouble() {
-            
+
             try {
                 double d = dis.readDouble();
-                
                 return d;
             } catch (IOException ex) {
                 System.err.println("Error reading data from Robot Server: \"" + ex.getMessage() + "\"");
@@ -325,10 +340,10 @@ public class RRCPClient {
             }
             return -1.0;
         }
+
         private String readString() {
             try {
                 String s = dis.readUTF();
-                
                 return s;
             } catch (IOException ex) {
                 System.err.println("Error reading data from Robot Server: \"" + ex.getMessage() + "\"");
@@ -336,9 +351,24 @@ public class RRCPClient {
             }
             return "";
         }
+
+        private double[] readDoubleArray() {
+            try {
+                int length = dis.readInt();
+                double[] d = new double[length];
+                for (int i = 0; i < length; i++) {
+                    d[i] = dis.readDouble();
+                }
+                return d;
+            } catch (IOException ex) {
+                System.err.println("Error reading data from Robot Server: \"" + ex.getMessage() + "\"");
+            }
+            return null;
+        }
     }
-    
+
     private class HeartBeatThread implements Runnable {
+
         public void run() {
             while (isConnected()) {
                 sendHeartBeat();

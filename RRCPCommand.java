@@ -72,7 +72,7 @@ public abstract class RRCPCommand {
         return "";
     }
     
-    protected static double[] sendCommandWithDoubleArray(DataInputStream dis) {
+    protected static double[] readDoubleArray(DataInputStream dis) {
         try {
             int length = dis.readInt();
             double[] d = new double[length];

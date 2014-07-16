@@ -121,7 +121,7 @@ public class RRCPServer implements Runnable {
                         }
                     }
                     try {
-                        Thread.sleep(100);
+                        Thread.sleep(50);
                     } catch (InterruptedException ex) {
                         System.err.println("Error sleeping: \"" + ex.getMessage() + "\"");
                     }

@@ -38,8 +38,4 @@ public class RRCPComputerTestCommandHandler {
             if(rrcpcommand.getName().equals(s)) rrcpcommand.exacute(dis, dos);
         }
     }
-    
-    public static void onSocketClose() {
-        
-    }
 }

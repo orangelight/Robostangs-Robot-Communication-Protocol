@@ -43,8 +43,4 @@ public class RRCPCommandHandler {
         }
         System.err.println("Command not recognized: \"" + s + "\"\nError incoming!!!");
     }
-    
-    public static void onSocketClose() {
-        
-    }
 }

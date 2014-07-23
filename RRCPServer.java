@@ -27,10 +27,6 @@ public class RRCPServer implements Runnable {
         return instance;
     }
     
-    public static void setPort(int p) {
-        port = p;
-    }
-    
     private RRCPServer() {
         t = new Thread(this);
     }
@@ -127,6 +123,7 @@ public class RRCPServer implements Runnable {
                     }
                 }
                 System.err.println("Client timed out!!!");
+                RRCPCommandHandler.onSocketClose();
             } catch (IOException ex) {
                 System.err.println("Error reading data from client: \"" + ex.getMessage() + "\"");
             }         

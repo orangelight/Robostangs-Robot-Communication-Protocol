@@ -25,10 +25,6 @@ public class RRCPComputerTestServer implements Runnable {
         return instance;
     }
     
-    public static void setPort(int p) {
-        port = p;
-    }
-    
     private RRCPComputerTestServer() {
         t = new Thread(this);
     }

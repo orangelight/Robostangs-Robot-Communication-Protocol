@@ -28,7 +28,8 @@ public class RRCPClient {
      */
     public RRCPClient(String host, int timeout) {
         this.host = host;
-        port = 548;
+        this.port = 548;
+        this.timeout = timeout;
     }
 
     /**
@@ -37,6 +38,7 @@ public class RRCPClient {
     public RRCPClient(int timeout) {
         host = "10.5.48.2";
         port = 548;
+        this.timeout = timeout;
     }
 
     /**
@@ -48,6 +50,7 @@ public class RRCPClient {
     public RRCPClient(String host, int port, int timeout) {
         this.host = host;
         this.port = port;
+        this.timeout = timeout;
     }
 
     /**
@@ -62,7 +65,6 @@ public class RRCPClient {
             ph = new PacketHandler();
             heartBeatThread = new Thread(new HeartBeatThread());
             heartBeatThread.start();
-
         } catch (IOException ex) {
             System.err.println("Error Connecting to Robot Server: \"" + ex.getMessage() + "\"");
             this.close();

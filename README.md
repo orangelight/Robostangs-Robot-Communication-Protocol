@@ -16,3 +16,4 @@ static RRCPCommand echo = new RRCPCommand(("ECHO")) {
     }
 };
 ```
+Android now supported!!!

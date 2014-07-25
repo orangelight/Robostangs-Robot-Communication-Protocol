@@ -1,8 +1,7 @@
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.IOException;
-import java.util.Vector;
+import java.util.ArrayList;
 
 /**
  *
@@ -11,9 +10,9 @@ import java.util.Vector;
 public class RRCPComputerTestCommandHandler {
 
     private static RRCPComputerTestCommandHandler instance;
-    private static Vector<RRCPCommand> commandlist;
-    
-    public static RRCPComputerTestCommandHandler getInstance() {
+    private static ArrayList<RRCPCommand> commandlist;
+    private static RRCPCommand closeSocketCommand;
+    protected static RRCPComputerTestCommandHandler getInstance() {
         if (instance == null) {
             instance = new RRCPComputerTestCommandHandler();
         }
@@ -21,21 +20,27 @@ public class RRCPComputerTestCommandHandler {
     }
     
     private RRCPComputerTestCommandHandler() {
-        commandlist = new Vector<RRCPCommand>();
+        commandlist = new ArrayList<>();
     }
-    public static void addCommand(RRCPCommand rrcpcommand) {
-        commandlist.add(rrcpcommand);
-        commandlist.trimToSize();
-    }
-    /**
-     * This class and method is what you edit to make commands
-     * @param s Command
-     * @param dis DataInputStream
-     * @param dos DataOutputStream
-     */
-    public static void executeCommand(String s, DataInputStream dis, DataOutputStream dos) {
-        for(RRCPCommand rrcpcommand : commandlist) {
-            if(rrcpcommand.getName().equals(s)) rrcpcommand.exacute(dis, dos);
+    protected static void addCommand(RRCPCommand rrcpcommand) {
+        if(rrcpcommand.getName().equals("SOCKETCLOSED")) closeSocketCommand = rrcpcommand; 
+        else {
+            commandlist.add(rrcpcommand);
+            commandlist.trimToSize();
         }
+    }
+    
+    protected static void executeCommand(String s, DataInputStream dis, DataOutputStream dos) {
+        for(RRCPCommand rrcpcommand : commandlist) {
+            if(rrcpcommand.getName().equals(s)) { 
+                rrcpcommand.exacute(dis, dos);
+                return;
+            }
+        }
+        System.err.println("Command not recognized: \"" + s + "\"\nError incoming!!!");
+    }
+    
+    protected static void onSocketClose() {
+        if(closeSocketCommand !=  null) closeSocketCommand.exacute(null, null);
     }
 }

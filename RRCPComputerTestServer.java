@@ -14,7 +14,7 @@ public class RRCPComputerTestServer implements Runnable {
     private static boolean listening = true;
     private static int port = 548;
     private static int timeout = 5000;
-    private static Thread t;
+    private static Thread mainThread;
     private static RRCPComputerTestServer instance;
     private static ServerSocket server;
 
@@ -26,18 +26,18 @@ public class RRCPComputerTestServer implements Runnable {
     }
     
     private RRCPComputerTestServer() {
-        t = new Thread(this);
+        mainThread = new Thread(this);
     }
     
     public static void startServer(int port, int timeout) {
         RRCPComputerTestServer.port = port;
         RRCPComputerTestServer.timeout = timeout;
         listening = true;
-        t.start();
+        mainThread.start();
     }
     
     public static void startServer() {
-        t.start();
+        mainThread.start();
     }
     
     public static void stopServer() {
@@ -123,7 +123,8 @@ public class RRCPComputerTestServer implements Runnable {
                 System.err.println("Client timed out!!!");
             } catch (IOException ex) {
                 System.err.println("Error reading data from client: \"" + ex.getMessage() + "\"");
-            }         
+            } 
+            RRCPComputerTestCommandHandler.onSocketClose();
         }        
     }
 }

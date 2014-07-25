@@ -5,450 +5,474 @@ import java.io.IOException;
 import java.net.Socket;
 import java.util.LinkedList;
 
-
 public class RRCPClient {
-	private Socket s;
-	private DataInputStream dis;
-	private DataOutputStream dos;
-	private String host;
-	private int port = 548;
-	private int timeout = 30;
-	private boolean connected = false;
-	private boolean connecting = false;
-	private Thread heartBeatThread;
-	private PacketHandler ph;
-	
-	/**
-	 * Sets the robot server IP Sets port to default port (548)
-	 * 
-	 * @param host
-	 *            Server IP
-	 */
-	public RRCPClient(String host, int timeout) {
-		this.host = host;
-		this.timeout = timeout;
-	}
 
-	/**
-	 * Sets IP to default server IP (10.5.48.2) Sets port to default port (548)
-	 */
-	public RRCPClient(int timeout) {
-		host = "10.5.48.2";
-		this.timeout = timeout;
-	}
-	/**
-	 * Sets the robot server IP and port
-	 * 
-	 * @param host
-	 *            Server IP
-	 * @param port
-	 *            Server Port
-	 */
-	public RRCPClient(String host, int timeout, int port) {
-		this.host = host;
-		this.port = port;
-		this.timeout = timeout;
-	}
-	/**
-	 * Tries to connect to robot server with server host and port, also starts client
-	 */
-	public void connect() {
-		Thread t = new Thread(new Runnable() {
-			@Override
-			public void run() {
-				try {
-					connecting = true;
-					s = new Socket(host, port);
-					dis = new DataInputStream(s.getInputStream());
-					dos = new DataOutputStream(s.getOutputStream());
-					connected = true;
-					ph = new PacketHandler();
-					heartBeatThread = new Thread(new HeartBeatThread());
-					heartBeatThread.start();
-				} catch (IOException ex) {
-					System.err.println("Error Connecting to Robot Server: \""+ ex.getMessage() + "\"");
-					close();
-				} finally {
-					connecting = false;
-				}
-				
-			}
-			
-		});
-		t.start();
-	}
+    private Socket s;
+    private DataInputStream dis;
+    private DataOutputStream dos;
+    private String host;
+    private int port = 548;
+    private int timeout = 30;
+    private boolean connected = false;
+    private boolean connecting = false;
+    private Thread heartBeatThread;
+    private PacketHandler ph;
 
-	/**
-	 * Tells whether client is connected to robot server
-	 * 
-	 * @return true if connected
-	 */
-	public boolean isConnected() {
-		return connected;
-	}
-	
-	public boolean isConnecting() {
-		return connecting;
-	}
-	public synchronized void sendCommand(String command) {
-		if (isConnected()) {
-			try {
-				dos.writeUTF(command);
-				dos.flush();
-			} catch (IOException ex) {
-				System.err.println("Error sending data to Robot Server: \""+ ex.getMessage() + "\"");
-				this.close();
-			}
-		} else System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
-	}
+    /**
+     * Sets the robot server IP Sets port to default port (548)
+     *
+     * @param host Server IP
+     */
+    public RRCPClient(String host, int timeout) {
+        this.host = host;
+        this.timeout = timeout;
+    }
 
-	public void sendCommandWithDouble(String command, double d) {
-		if (isConnected()) {
-			try {
-				dos.writeUTF(command);
-				dos.writeDouble(d);
-				dos.flush();
+    /**
+     * Sets IP to default server IP (10.5.48.2) Sets port to default port (548)
+     */
+    public RRCPClient(int timeout) {
+        host = "10.5.48.2";
+        this.timeout = timeout;
+    }
 
-			} catch (IOException ex) {
-				System.err.println("Error sending data to Robot Server: \""+ ex.getMessage() + "\"");
-				this.close();
-			}
-		} else System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
-	}
+    /**
+     * Sets the robot server IP and port
+     *
+     * @param host Server IP
+     * @param port Server Port
+     */
+    public RRCPClient(String host, int timeout, int port) {
+        this.host = host;
+        this.port = port;
+        this.timeout = timeout;
+    }
 
-	public void sendCommandWithInt(String command, int i) {
-		if (isConnected()) {
-			try {
-				dos.writeUTF(command);
-				dos.writeInt(i);
-				dos.flush();
+    /**
+     * Tries to connect to robot server with server host and port, also starts
+     * client
+     */
+    public void connect() {
+        Thread t = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    connecting = true;
+                    s = new Socket(host, port);
+                    dis = new DataInputStream(s.getInputStream());
+                    dos = new DataOutputStream(s.getOutputStream());
+                    connected = true;
+                    ph = new PacketHandler();
+                    heartBeatThread = new Thread(new HeartBeatThread());
+                    heartBeatThread.start();
+                } catch (IOException ex) {
+                    System.err.println("Error Connecting to Robot Server: \"" + ex.getMessage() + "\"");
+                    close();
+                } finally {
+                    connecting = false;
+                }
 
-			} catch (IOException ex) {
-				System.err.println("Error sending data to Robot Server: \""+ ex.getMessage() + "\"");
-				this.close();
-			}
-		} else System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
-	}
-	
-	public void sendCommandWithBoolean(String command, boolean b) {
-		if (isConnected()) {
-			try {
-				dos.writeUTF(command);
-				dos.writeBoolean(b);
-				dos.flush();
+            }
+        });
+        t.start();
+    }
 
-			} catch (IOException ex) {
-				System.err.println("Error sending data to Robot Server: \""+ ex.getMessage() + "\"");
-				this.close();
-			}
-		} else System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
-	}
+    /**
+     * Tells whether client is connected to robot server
+     *
+     * @return true if connected
+     */
+    public boolean isConnected() {
+        return connected;
+    }
 
-	public void sendCommandWithString(String command, String s) {
-		if (isConnected()) {
-			try {
-				dos.writeUTF(command);
-				dos.writeUTF(s);
-				dos.flush();
+    public boolean isConnecting() {
+        return connecting;
+    }
 
-			} catch (IOException ex) {
-				System.err.println("Error sending data to Robot Server: \""+ ex.getMessage() + "\"");
-				this.close();
-			}
-		} else System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
-	}
+    public synchronized void sendCommand(String command) {
+        if (isConnected()) {
+            try {
+                dos.writeUTF(command);
+                dos.flush();
+            } catch (IOException ex) {
+                System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
+                this.close();
+            }
+        } else {
+            System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
+        }
+    }
 
-	public void sendCommandWithDoubleArray(String command, double d[]) {
-		if (isConnected()) {
-			try {
-				dos.writeUTF(command);
-				dos.writeInt(d.length);
-				for (int i = 0; i < d.length; i++) {
-					dos.writeDouble(d[i]);
-				}
-				dos.flush();
+    public void sendCommandWithDouble(String command, double d) {
+        if (isConnected()) {
+            try {
+                dos.writeUTF(command);
+                dos.writeDouble(d);
+                dos.flush();
 
-			} catch (IOException ex) {
-				System.err.println("Error sending data to Robot Server: \""+ ex.getMessage() + "\"");
-				this.close();
-			}
-		} else System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
-	}
+            } catch (IOException ex) {
+                System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
+                this.close();
+            }
+        } else {
+            System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
+        }
+    }
 
-	private void sendHeartBeat() {
-		this.sendCommand("HEARTBEAT");
-		if (ph.getHeartBeat().getID() == 21) {
-			this.connected = true;
-		} else {
-			this.close();
-		}
-	}
-	
-	private class HeartBeatThread implements Runnable {
+    public void sendCommandWithInt(String command, int i) {
+        if (isConnected()) {
+            try {
+                dos.writeUTF(command);
+                dos.writeInt(i);
+                dos.flush();
 
-		public void run() {
-			while (isConnected()) {
-				sendHeartBeat();
-				try {
-					Thread.sleep(2000);
-				} catch (InterruptedException ex) {
-					System.err.println("Error sleeping: \"" + ex.getMessage()+ "\"");
-				}
-			}
-		}
-	}
-	
-	public byte readBytePacket() {
-		if (isConnected())  {
-			Packet isNull = ph.getPacket();
-			if(isNull == null) return -1;
-			return (Byte) isNull.getData();
-		}
-		System.err.println("MUST BE CONNECTED TO ROBOT TO READ DATA!!!");
-		return -1;
-	}
+            } catch (IOException ex) {
+                System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
+                this.close();
+            }
+        } else {
+            System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
+        }
+    }
 
-	public boolean readBooleanPacket() {
-		if (isConnected()) {
-			Packet isNull = ph.getPacket();
-			if(isNull == null) return false;
-			return ((Byte) isNull.getData() == 1) ? true : false;
-		}
-		System.err.println("MUST BE CONNECTED TO ROBOT TO READ DATA!!!");
-		return false;
-	}
+    public void sendCommandWithBoolean(String command, boolean b) {
+        if (isConnected()) {
+            try {
+                dos.writeUTF(command);
+                dos.writeBoolean(b);
+                dos.flush();
 
-	public int readIntPacket() {
-		if (isConnected()) {
-			Packet isNull = ph.getPacket();
-			if(isNull == null) return -1;
-			return (Integer) ph.getPacket().getData();
-		}
-		System.err.println("MUST BE CONNECTED TO ROBOT TO READ DATA!!!");
-		return -1;
-	}
+            } catch (IOException ex) {
+                System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
+                this.close();
+            }
+        } else {
+            System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
+        }
+    }
 
-	public double readDoublePacket() {
-		if (isConnected()) {
-			Packet isNull = ph.getPacket();
-			if(isNull == null) return -1.0;
-			return (Double) isNull.getData();
-		}
-		System.err.println("MUST BE CONNECTED TO ROBOT TO READ DATA!!!");
-		return -1.0;
-	}
-	
-	public String readStringPacket() {
-		if (isConnected()) { 
-			Packet isNull = ph.getPacket();
-			if(isNull == null) return "";
-			return (String) isNull.getData();
-		}
-		System.err.println("MUST BE CONNECTED TO ROBOT TO READ DATA!!!");
-		return "";
-	}
+    public void sendCommandWithString(String command, String s) {
+        if (isConnected()) {
+            try {
+                dos.writeUTF(command);
+                dos.writeUTF(s);
+                dos.flush();
 
-	public double[] readDoubleArrayPacket() {
-		if (isConnected()) { 
-			Packet isNull = ph.getPacket();
-			if(isNull == null) return new double[0];
-			return (double[]) isNull.getData();
-		}
-		System.err.println("MUST BE CONNECTED TO ROBOT TO READ DATA!!!");
-		return new double[0];
-	}
-	
-	public void close() {
-		try {
-			this.connected = false;
-			if(s != null) { 
-				this.dos.close();
-				this.dis.close();
-				this.s.close();
-			}
-		} catch (IOException ex) {
-			System.err.println("Error closing socket: \"" + ex.getMessage()+ "\"");
-			this.close();
-		}
-	}
+            } catch (IOException ex) {
+                System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
+                this.close();
+            }
+        } else {
+            System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
+        }
+    }
 
-	private class PacketHandler implements Runnable {
+    public void sendCommandWithDoubleArray(String command, double d[]) {
+        if (isConnected()) {
+            try {
+                dos.writeUTF(command);
+                dos.writeInt(d.length);
+                for (int i = 0; i < d.length; i++) {
+                    dos.writeDouble(d[i]);
+                }
+                dos.flush();
 
-		private LinkedList<Packet> packetQueue;
-		private LinkedList<Packet> beatQueue;
-		private Thread mainThread;
-		
-		public PacketHandler() {
-			this.packetQueue = new LinkedList<Packet>();
-			this.beatQueue = new LinkedList<Packet>();
-			this.mainThread = new Thread(this);
-			this.mainThread.start();
-		}
+            } catch (IOException ex) {
+                System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
+                this.close();
+            }
+        } else {
+            System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
+        }
+    }
 
-		public void run() {
-			while (isConnected()) {
-				try {
-					while (dis.available() > 0) {
-						new Packet(readByte());
-					}
-				} catch (IOException ex) {
-					System.err.println("Error reading packet ID from robot server: \""+ ex.getMessage() + "\"");
-				}
-				try {
-					Thread.sleep(50);
-				} catch (InterruptedException ex) {
-					System.err.println("Error sleeping: \"" + ex.getMessage()+ "\"");
-				}
-			}
-		}
-		
-		private Packet getHeartBeat() {
-			int i = 0;
-			while (beatQueue.size() == 0) {
-				++i;
-				if (i > timeout) {
-					System.err.println("SERVER DID NOT RESPOND!!!");
-					return new Packet((byte) 100);
-				}
-				try {
-					Thread.sleep(50);
-				} catch (InterruptedException ex) {
-					System.err.println("Error sleeping: \"" + ex.getMessage()+ "\"");
-				}
-			}
-			System.err.println("HEARTBEAT TIME: " + i*50+"ms");
-			Packet p = beatQueue.getFirst();
-			beatQueue.removeFirst();
-			return p;
-		}
+    private void sendHeartBeat() {
+        this.sendCommand("HEARTBEAT");
+        if (ph.getHeartBeat().getID() == 21) {
+            this.connected = true;
+        } else {
+            this.close();
+        }
+    }
 
-		private synchronized Packet getPacket() {
-			int i = 0;
-			while (packetQueue.size() == 0) {
-				++i;
-				if (i > timeout + 15) {
-					System.err.println("Could not find packet! Packet lost!");
-					return null;
-				}
-				try {
-					Thread.sleep(50);
-				} catch (InterruptedException ex) {
-					System.err.println("Error sleeping: \"" + ex.getMessage()+ "\"");
-				}
-			}
-			System.err.println("TRIES: " + i);
-			Packet p = packetQueue.getFirst();
-			packetQueue.removeFirst();
-			return p;
-		}
-		
-		public void addPacketToBeatQueue(Packet p) {
-			beatQueue.addFirst(p);
-		}
-		
-		public void addPacketToQueue(Packet p) {
-			packetQueue.addFirst(p);
-		}
-	}
-	
-	private class Packet {
+    private class HeartBeatThread implements Runnable {
 
-		private byte id;
-		public Object data;
+        public void run() {
+            while (isConnected()) {
+                sendHeartBeat();
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException ex) {
+                    System.err.println("Error sleeping: \"" + ex.getMessage() + "\"");
+                }
+            }
+        }
+    }
 
-		public Packet(byte id) {
-			this.id = id;
-			if (id == 21) {
-				ph.addPacketToBeatQueue(this);
-			} else if (id == 1) {
-				data = readByte();
-				ph.addPacketToQueue(this);
-			} else if (id == 2) {
-				data = readInt();
-				ph.addPacketToQueue(this);
-			} else if (id == 3) {
-				data = readByte();
-				ph.addPacketToQueue(this);
-			} else if (id == 4) {
-				data = readDouble();
-				ph.addPacketToQueue(this);
-			} else if (id == 5) {
-				data = readString();
-				ph.addPacketToQueue(this);
-			} else if (id == 6) {
-				data = readDoubleArray();
-				ph.addPacketToQueue(this);
-			} else if (id == 100) {
-			} else {
-				data = null;
-				System.err.println("Packet not reconized!!!");
-			}
-		}
+    public byte readBytePacket() {
+        if (isConnected()) {
+            Packet isNull = ph.getPacket();
+            if (isNull == null) {
+                return -1;
+            }
+            return (Byte) isNull.getData();
+        }
+        System.err.println("MUST BE CONNECTED TO ROBOT TO READ DATA!!!");
+        return -1;
+    }
 
-		public Object getData() {
-			return data;
-		}
+    public boolean readBooleanPacket() {
+        if (isConnected()) {
+            Packet isNull = ph.getPacket();
+            if (isNull == null) {
+                return false;
+            }
+            return ((Byte) isNull.getData() == 1) ? true : false;
+        }
+        System.err.println("MUST BE CONNECTED TO ROBOT TO READ DATA!!!");
+        return false;
+    }
 
-		public byte getID() {
-			return id;
-		}
-	}
-	
-	private byte readByte() {
-		try {
-			byte b = dis.readByte();
-			return b;
-		} catch (IOException ex) {
-			System.err.println("Error reading data from Robot Server: \""+ ex.getMessage() + "\"");
-		}
-		return -1;
-	}
+    public int readIntPacket() {
+        if (isConnected()) {
+            Packet isNull = ph.getPacket();
+            if (isNull == null) {
+                return -1;
+            }
+            return (Integer) ph.getPacket().getData();
+        }
+        System.err.println("MUST BE CONNECTED TO ROBOT TO READ DATA!!!");
+        return -1;
+    }
 
-	private int readInt() {
-		try {
-			int i = dis.readInt();
-			return i;
-		} catch (IOException ex) {
-			System.err.println("Error reading data from Robot Server: \""+ ex.getMessage() + "\"");
-			close();
-		}
-		return -1;
-	}
+    public double readDoublePacket() {
+        if (isConnected()) {
+            Packet isNull = ph.getPacket();
+            if (isNull == null) {
+                return -1.0;
+            }
+            return (Double) isNull.getData();
+        }
+        System.err.println("MUST BE CONNECTED TO ROBOT TO READ DATA!!!");
+        return -1.0;
+    }
 
-	private double readDouble() {
+    public String readStringPacket() {
+        if (isConnected()) {
+            Packet isNull = ph.getPacket();
+            if (isNull == null) {
+                return "";
+            }
+            return (String) isNull.getData();
+        }
+        System.err.println("MUST BE CONNECTED TO ROBOT TO READ DATA!!!");
+        return "";
+    }
 
-		try {
-			double d = dis.readDouble();
-			return d;
-		} catch (IOException ex) {
-			System.err.println("Error reading data from Robot Server: \""+ ex.getMessage() + "\"");
-			close();
-		}
-		return -1.0;
-	}
+    public double[] readDoubleArrayPacket() {
+        if (isConnected()) {
+            Packet isNull = ph.getPacket();
+            if (isNull == null) {
+                return new double[0];
+            }
+            return (double[]) isNull.getData();
+        }
+        System.err.println("MUST BE CONNECTED TO ROBOT TO READ DATA!!!");
+        return new double[0];
+    }
 
-	private String readString() {
-		try {
-			String s = dis.readUTF();
-			return s;
-		} catch (IOException ex) {
-			System.err.println("Error reading data from Robot Server: \""+ ex.getMessage() + "\"");
-			close();
-		}
-		return "";
-	}
+    public void close() {
+        try {
+            this.connected = false;
+            if (s != null) {
+                this.dos.close();
+                this.dis.close();
+                this.s.close();
+            }
+        } catch (IOException ex) {
+            System.err.println("Error closing socket: \"" + ex.getMessage() + "\"");
+            this.close();
+        }
+    }
 
-	private double[] readDoubleArray() {
-		try {
-			int length = dis.readInt();
-			double[] d = new double[length];
-			for (int i = 0; i < length; i++) {
-				d[i] = dis.readDouble();
-			}
-			return d;
-		} catch (IOException ex) {
-			System.err.println("Error reading data from Robot Server: \""+ ex.getMessage() + "\"");
-		}
-		return new double[0];
-	}
+    private class PacketHandler implements Runnable {
+
+        private LinkedList<Packet> packetQueue;
+        private LinkedList<Packet> beatQueue;
+        private Thread mainThread;
+
+        public PacketHandler() {
+            this.packetQueue = new LinkedList<Packet>();
+            this.beatQueue = new LinkedList<Packet>();
+            this.mainThread = new Thread(this);
+            this.mainThread.start();
+        }
+
+        public void run() {
+            while (isConnected()) {
+                try {
+                    while (dis.available() > 0) {
+                        new Packet(readByte());
+                    }
+                } catch (IOException ex) {
+                    System.err.println("Error reading packet ID from robot server: \"" + ex.getMessage() + "\"");
+                }
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException ex) {
+                    System.err.println("Error sleeping: \"" + ex.getMessage() + "\"");
+                }
+            }
+        }
+
+        private Packet getHeartBeat() {
+            int i = 0;
+            while (beatQueue.size() == 0) {
+                ++i;
+                if (i > timeout) {
+                    System.err.println("SERVER DID NOT RESPOND!!!");
+                    return new Packet((byte) 100);
+                }
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException ex) {
+                    System.err.println("Error sleeping: \"" + ex.getMessage() + "\"");
+                }
+            }
+            System.err.println("HEARTBEAT TIME: " + i * 50 + "ms");
+            Packet p = beatQueue.getFirst();
+            beatQueue.removeFirst();
+            return p;
+        }
+
+        private synchronized Packet getPacket() {
+            int i = 0;
+            while (packetQueue.size() == 0) {
+                ++i;
+                if (i > timeout + 15) {
+                    System.err.println("Could not find packet! Packet lost!");
+                    return null;
+                }
+                try {
+                    Thread.sleep(50);
+                } catch (InterruptedException ex) {
+                    System.err.println("Error sleeping: \"" + ex.getMessage() + "\"");
+                }
+            }
+            System.err.println("TRIES: " + i);
+            Packet p = packetQueue.getFirst();
+            packetQueue.removeFirst();
+            return p;
+        }
+
+        public void addPacketToBeatQueue(Packet p) {
+            beatQueue.addFirst(p);
+        }
+
+        public void addPacketToQueue(Packet p) {
+            packetQueue.addFirst(p);
+        }
+    }
+
+    private class Packet {
+
+        private byte id;
+        public Object data;
+
+        public Packet(byte id) {
+            this.id = id;
+            if (id == 21) {
+                ph.addPacketToBeatQueue(this);
+            } else if (id == 1) {
+                data = readByte();
+                ph.addPacketToQueue(this);
+            } else if (id == 2) {
+                data = readInt();
+                ph.addPacketToQueue(this);
+            } else if (id == 3) {
+                data = readByte();
+                ph.addPacketToQueue(this);
+            } else if (id == 4) {
+                data = readDouble();
+                ph.addPacketToQueue(this);
+            } else if (id == 5) {
+                data = readString();
+                ph.addPacketToQueue(this);
+            } else if (id == 6) {
+                data = readDoubleArray();
+                ph.addPacketToQueue(this);
+            } else if (id == 100) {
+            } else {
+                data = null;
+                System.err.println("Packet not reconized!!!");
+            }
+        }
+
+        public Object getData() {
+            return data;
+        }
+
+        public byte getID() {
+            return id;
+        }
+    }
+
+    private byte readByte() {
+        try {
+            byte b = dis.readByte();
+            return b;
+        } catch (IOException ex) {
+            System.err.println("Error reading data from Robot Server: \"" + ex.getMessage() + "\"");
+        }
+        return -1;
+    }
+
+    private int readInt() {
+        try {
+            int i = dis.readInt();
+            return i;
+        } catch (IOException ex) {
+            System.err.println("Error reading data from Robot Server: \"" + ex.getMessage() + "\"");
+            close();
+        }
+        return -1;
+    }
+
+    private double readDouble() {
+
+        try {
+            double d = dis.readDouble();
+            return d;
+        } catch (IOException ex) {
+            System.err.println("Error reading data from Robot Server: \"" + ex.getMessage() + "\"");
+            close();
+        }
+        return -1.0;
+    }
+
+    private String readString() {
+        try {
+            String s = dis.readUTF();
+            return s;
+        } catch (IOException ex) {
+            System.err.println("Error reading data from Robot Server: \"" + ex.getMessage() + "\"");
+            close();
+        }
+        return "";
+    }
+
+    private double[] readDoubleArray() {
+        try {
+            int length = dis.readInt();
+            double[] d = new double[length];
+            for (int i = 0; i < length; i++) {
+                d[i] = dis.readDouble();
+            }
+            return d;
+        } catch (IOException ex) {
+            System.err.println("Error reading data from Robot Server: \"" + ex.getMessage() + "\"");
+        }
+        return new double[0];
+    }
 }

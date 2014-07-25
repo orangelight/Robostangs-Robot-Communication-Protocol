@@ -128,7 +128,7 @@ public class RRCPAndroidClient {
 			}
 		} else System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
 	}
-
+	
 	public void sendCommandWithBoolean(String command, boolean b) {
 		if (isConnected()) {
 			try {
@@ -331,10 +331,13 @@ public class RRCPAndroidClient {
 			return p;
 		}
 		
-		public void addPacketToQueue(Packet p) {
+		public void addPacketToBeatQueue(Packet p) {
 			beatQueue.addFirst(p);
 		}
 		
+		public void addPacketToQueue(Packet p) {
+			packetQueue.addFirst(p);
+		}
 	}
 	
 	private class Packet {
@@ -345,7 +348,7 @@ public class RRCPAndroidClient {
 		public Packet(byte id) {
 			this.id = id;
 			if (id == 21) {
-				ph.addPacketToQueue(this);
+				ph.addPacketToBeatQueue(this);
 			} else if (id == 1) {
 				data = readByte();
 				ph.addPacketToQueue(this);

@@ -7,7 +7,7 @@ Add RRCPServer & RRCPCommandHandler to the robot code when They’re done.
 Use RRCPClient to connect to the robot server from a client.
 Use RRCPComputerTestServer & RRCPComputerTestCommandHandler if you dont have a robot cRIO to test on the computer.
 
-Example command that echos a string you give it:
+Example command that echos a string you give it. "ECHO" is the name:
 ```
 static RRCPCommand echo = new RRCPCommand(("ECHO")) {
         @Override
@@ -16,11 +16,10 @@ static RRCPCommand echo = new RRCPCommand(("ECHO")) {
     }
 };
 ```
+Set a RRCPCommand name to SOCKETCLOSED and it will be called when a cleint timesout or disconnects.
 Android now supported!!!
 
 Things to do
 =======================================
-- [ ] Tell client if the robot is enabled
-- [ ] Tell client what mode robot is in
 - [ ] Maybe have robot server be able to send commands to client
 - [ ] Make sure everything works

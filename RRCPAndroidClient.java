@@ -250,7 +250,7 @@ public class RRCPAndroidClient implements Runnable {
                     System.err.println("Error sleeping: \"" + ex.getMessage() + "\"");
                 }
             }
-            System.err.println("HEARTBEAT TRIES: "+i);
+            System.err.println("HEARTBEAT TIME: " + i*50+"ms");
             Packet p = beatQueue.getFirst();
             beatQueue.removeFirst();
             return p;
@@ -270,7 +270,6 @@ public class RRCPAndroidClient implements Runnable {
                     System.err.println("Error sleeping: \"" + ex.getMessage() + "\"");
                 }
             }
-            System.err.println("TRIES: "+i);
             Packet p = packetQueue.getFirst();
             packetQueue.removeFirst();
             return p;

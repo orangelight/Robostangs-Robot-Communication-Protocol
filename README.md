@@ -17,3 +17,10 @@ static RRCPCommand echo = new RRCPCommand(("ECHO")) {
 };
 ```
 Android now supported!!!
+
+Things to do
+=======================================
+- [ ] Tell client if the robot is enabled
+- [ ] Tell client what mode robot is in
+- [ ] Maybe have robot server be able to send commands to client
+- [ ] Make sure everything works

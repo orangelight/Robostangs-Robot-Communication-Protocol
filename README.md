@@ -11,9 +11,11 @@ Example command that echos a string you give it. "ECHO" is the name:
 ```
 static RRCPCommand echo = new RRCPCommand(("ECHO")) {
         @Override
-        public void exacute(DataInputStream dis, DataOutputStream dos) {
-            this.sendString(this.readString(dis), dos);
-    }
+        public void exacute(DataOutputStream dos, Object data) {
+            String message = (String)data;
+            System.out.println("ECHOING: "+message);
+            this.sendString(message, dos);
+        }
 };
 ```
 Set a RRCPCommand name to SOCKETCLOSED and it will be called when a cleint timesout or disconnects.

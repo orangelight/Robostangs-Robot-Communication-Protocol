@@ -101,5 +101,11 @@ public class RobotTemplate extends IterativeRobot {
             setMotors(0, 0);
         }
     };
+	static RRCPCommand closedsocket = new RRCPCommand(("SOCKETCLOSED")) {
+        @Override
+        public void exacute(DataInputStream dis, DataOutputStream dos) {
+            setMotors(0, 0);
+        }
+    };
     
 }

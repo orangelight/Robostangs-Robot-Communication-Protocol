@@ -1,5 +1,4 @@
 
-import edu.wpi.first.wpilibj.Timer;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -16,7 +15,7 @@ public class RRCPServer implements Runnable {
     private static boolean listening = true;
     private static int port = 548;
     private static int timeout = 5000;
-    private static Thread t;
+    private static Thread mainThread;
     private static RRCPServer instance;
     private static ServerSocketConnection server;
 
@@ -28,18 +27,18 @@ public class RRCPServer implements Runnable {
     }
     
     private RRCPServer() {
-        t = new Thread(this);
+        mainThread = new Thread(this);
     }
     
     public static void startServer(int port, int timeout) {
         RRCPServer.port = port;
         RRCPServer.timeout = timeout;
         listening = true;
-        t.start();
+        mainThread.start();
     }
     
     public static void startServer() {
-        t.start();
+        mainThread.start();
     }
     
     public static void stopServer() {
@@ -123,10 +122,10 @@ public class RRCPServer implements Runnable {
                     }
                 }
                 System.err.println("Client timed out!!!");
-                RRCPCommandHandler.onSocketClose();
             } catch (IOException ex) {
                 System.err.println("Error reading data from client: \"" + ex.getMessage() + "\"");
-            }         
+            }    
+            RRCPCommandHandler.onSocketClose();
         }        
     }
 }

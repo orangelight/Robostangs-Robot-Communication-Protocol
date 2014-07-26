@@ -1,4 +1,6 @@
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -10,7 +12,7 @@ import java.net.Socket;
  * @author Alex
  */
 public class RRCPComputerTestServer implements Runnable {
-    
+
     private static boolean listening = true;
     private static int port = 548;
     private static int timeout = 5000;
@@ -24,22 +26,22 @@ public class RRCPComputerTestServer implements Runnable {
         }
         return instance;
     }
-    
+
     private RRCPComputerTestServer() {
         mainThread = new Thread(this);
     }
-    
+
     public static void startServer(int port, int timeout) {
         RRCPComputerTestServer.port = port;
         RRCPComputerTestServer.timeout = timeout;
         listening = true;
         mainThread.start();
     }
-    
+
     public static void startServer() {
         mainThread.start();
     }
-    
+
     public static void stopServer() {
         try {
             listening = false;
@@ -49,32 +51,33 @@ public class RRCPComputerTestServer implements Runnable {
         }
         System.out.println("SERVER SHUT DOWN");
     }
-    
+
     public void run() {
         try {
             server = new ServerSocket(this.port);
-           while(listening) {
-               Socket s = server.accept();
-               System.out.println("Client Connected");
-               RRCPConnectionHandler ch = new RRCPConnectionHandler(s);
-               Thread tch = new Thread(ch);
-               tch.start();
-           }
+            while (listening) {
+                Socket s = server.accept();
+                System.out.println("Client Connected");
+                RRCPConnectionHandler ch = new RRCPConnectionHandler(s);
+                Thread tch = new Thread(ch);
+                tch.start();
+            }
         } catch (IOException ex) {
             System.err.println("Error making client socket: \"" + ex.getMessage() + "\"");
         }
     }
-       
+
     private class RRCPConnectionHandler implements Runnable {
-        
+
         private Socket s;
         private DataInputStream dis;
         private DataOutputStream dos;
         private long lastHeartBeat;
+
         public RRCPConnectionHandler(Socket s) {
             this.s = s;
             try {
-                dis = new DataInputStream(new BufferedInputStream(this.s.getInputStream()));
+                dis = new DataInputStream(new BufferedInputStream(s.getInputStream()));
                 dos = new DataOutputStream(new BufferedOutputStream(this.s.getOutputStream()));
             } catch (IOException ex) {
                 System.err.println("Error making data streams on ConnectionHandler: \"" + ex.getMessage() + "\"");
@@ -85,7 +88,7 @@ public class RRCPComputerTestServer implements Runnable {
             protocol();
             this.close();
         }
-        
+
         private void close() {
             try {
                 dis.close();
@@ -94,24 +97,37 @@ public class RRCPComputerTestServer implements Runnable {
                 System.err.println("Error closing ConnectionHandler: \"" + ex.getMessage() + "\"");
             }
         }
-        
+
         private void protocol() {
             try {
                 this.lastHeartBeat = System.currentTimeMillis();
-                while(System.currentTimeMillis() < this.lastHeartBeat+timeout && RRCPComputerTestServer.listening) {
-                    while(dis.available() > 0) {
-                        String command = dis.readUTF();
+                while (System.currentTimeMillis() < this.lastHeartBeat + timeout && RRCPComputerTestServer.listening) {
+                    while (dis.available() > 0) {
+                        byte id = dis.readByte();
                         this.lastHeartBeat = System.currentTimeMillis();
-                        if(command.equals("HEARTBEAT")) {
-                            dos.write((byte)21);
+                        if (id == 21) {
+                            dos.write((byte) 21);
                             dos.flush();
                             this.lastHeartBeat = System.currentTimeMillis();
                             System.out.println("Heartbeat Received");
-                        } else if(command.equals("QUIT")) { 
+                            break;
+                        } else if (id == 0) {
                             this.close();
                             break;
-                        } else {
-                            RRCPComputerTestCommandHandler.executeCommand(command, dis, dos);
+                        } else if (id == 1) {
+                            execute(dis.readUTF(), dis.readByte());
+                        } else if (id == 2) {
+                            execute(dis.readUTF(), dis.readInt());
+                        } else if (id == 3) {
+                            execute(dis.readUTF(), dis.readBoolean());
+                        } else if (id == 4) {
+                            execute(dis.readUTF(), dis.readDouble());
+                        } else if (id == 5) {
+                            execute(dis.readUTF(), dis.readUTF());
+                        } else if (id == 6) {
+                            execute(dis.readUTF(), this.readDoubleArray());
+                        } else if (id == 7) {
+                            execute(dis.readUTF(), null);
                         }
                     }
                     try {
@@ -123,8 +139,31 @@ public class RRCPComputerTestServer implements Runnable {
                 System.err.println("Client timed out!!!");
             } catch (IOException ex) {
                 System.err.println("Error reading data from client: \"" + ex.getMessage() + "\"");
-            } 
+            }
             RRCPComputerTestCommandHandler.onSocketClose();
-        }        
+        }
+
+        private void execute(final String s, final Object o) {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    RRCPComputerTestCommandHandler.executeCommand(s, dos, o);
+                }
+            }).start();
+        }
+
+        private double[] readDoubleArray() {
+            try {
+                int length = dis.readInt();
+                double[] d = new double[length];
+                for (int i = 0; i < length; i++) {
+                    d[i] = dis.readDouble();
+                }
+                return d;
+            } catch (IOException ex) {
+                System.err.println("Error reading data from Client: \"" + ex.getMessage() + "\"");
+            }
+            return null;
+        }
     }
 }

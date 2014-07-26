@@ -1,5 +1,4 @@
 
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.util.ArrayList;
 
@@ -12,6 +11,7 @@ public class RRCPComputerTestCommandHandler {
     private static RRCPComputerTestCommandHandler instance;
     private static ArrayList<RRCPCommand> commandlist;
     private static RRCPCommand closeSocketCommand;
+    
     protected static RRCPComputerTestCommandHandler getInstance() {
         if (instance == null) {
             instance = new RRCPComputerTestCommandHandler();
@@ -22,6 +22,7 @@ public class RRCPComputerTestCommandHandler {
     private RRCPComputerTestCommandHandler() {
         commandlist = new ArrayList<>();
     }
+    
     protected static void addCommand(RRCPCommand rrcpcommand) {
         if(rrcpcommand.getName().equals("SOCKETCLOSED")) closeSocketCommand = rrcpcommand; 
         else {
@@ -30,10 +31,10 @@ public class RRCPComputerTestCommandHandler {
         }
     }
     
-    protected static void executeCommand(String s, DataInputStream dis, DataOutputStream dos) {
+    protected static void executeCommand(String s, DataOutputStream dos, Object data) {
         for(RRCPCommand rrcpcommand : commandlist) {
             if(rrcpcommand.getName().equals(s)) { 
-                rrcpcommand.exacute(dis, dos);
+                rrcpcommand.exacute(dos, data);
                 return;
             }
         }

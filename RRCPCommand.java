@@ -1,5 +1,4 @@
 
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 
@@ -11,79 +10,14 @@ public abstract class RRCPCommand {
     private String name;
     public RRCPCommand(String n) {
         this.name = n;
-        RRCPCommandHandler.getInstance();
-        RRCPCommandHandler.addCommand(this);
+        RRCPComputerTestCommandHandler.getInstance();
+        RRCPComputerTestCommandHandler.addCommand(this);
     }
     
-    public abstract void exacute(DataInputStream dis, DataOutputStream dos);
+    public abstract void exacute(DataOutputStream dos, Object data);
     
     public String getName() {
         return name;
-    }
-    
-
-    protected byte readByte(DataInputStream dis) {
-        try {
-            byte b = dis.readByte();
-            return b;
-        } catch (IOException ex) {
-            System.err.println("Error reading data from Client: \"" + ex.getMessage() + "\"");
-        }
-        return -1;
-    }
-
-    protected boolean readBoolean(DataInputStream dis) {
-        try {
-            boolean b = dis.readBoolean();
-            return b;
-        } catch (IOException ex) {
-            System.err.println("Error reading data from Client: \"" + ex.getMessage() + "\"");
-        }
-        return false;
-    }
-
-    protected int readInt(DataInputStream dis) {
-        try {
-            int i = dis.readInt();
-            return i;
-        } catch (IOException ex) {
-            System.err.println("Error reading data from Client: \"" + ex.getMessage() + "\"");
-        }
-        return -1;
-    }
-
-    protected double readDouble(DataInputStream dis) {
-        try {
-            double d = dis.readDouble();
-            return d;
-        } catch (IOException ex) {
-            System.err.println("Error reading data from Client: \"" + ex.getMessage() + "\"");
-        }
-        return -1;
-    }
-
-    protected String readString(DataInputStream dis) {
-        try {
-            String s = dis.readUTF();
-            return s;
-        } catch (IOException ex) {
-            System.err.println("Error reading data from Client: \"" + ex.getMessage() + "\"");
-        }
-        return "";
-    }
-    
-    protected static double[] readDoubleArray(DataInputStream dis) {
-        try {
-            int length = dis.readInt();
-            double[] d = new double[length];
-            for (int i = 0; i < length; i++) {
-                d[i] = dis.readDouble();
-            }
-            return d;
-        } catch (IOException ex) {
-            System.err.println("Error reading data from Client: \"" + ex.getMessage() + "\"");
-        }
-        return null;
     }
     
     protected void sendByte(byte b, DataOutputStream dos) {

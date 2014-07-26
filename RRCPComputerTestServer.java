@@ -74,8 +74,8 @@ public class RRCPComputerTestServer implements Runnable {
         public RRCPConnectionHandler(Socket s) {
             this.s = s;
             try {
-                dis = new DataInputStream(this.s.getInputStream());
-                dos = new DataOutputStream((this.s.getOutputStream()));
+                dis = new DataInputStream(new BufferedInputStream(this.s.getInputStream()));
+                dos = new DataOutputStream(new BufferedOutputStream(this.s.getOutputStream()));
             } catch (IOException ex) {
                 System.err.println("Error making data streams on ConnectionHandler: \"" + ex.getMessage() + "\"");
             }

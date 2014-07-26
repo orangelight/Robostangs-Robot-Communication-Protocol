@@ -59,8 +59,8 @@ public class RRCPClient {
                 try {
                     connecting = true;
                     s = new Socket(host, port);
-                    dis = new DataInputStream(s.getInputStream());
-                    dos = new DataOutputStream(s.getOutputStream());
+                    dis = new DataInputStream(new BufferedInputStream(this.s.getInputStream()));
+                    dos = new DataOutputStream(new BufferedOutputStream(this.s.getOutputStream()));
                     connected = true;
                     ph = new PacketHandler();
                     heartBeatThread = new Thread(new HeartBeatThread());

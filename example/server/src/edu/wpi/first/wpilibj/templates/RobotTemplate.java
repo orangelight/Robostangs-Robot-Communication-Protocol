@@ -37,7 +37,6 @@ public class RobotTemplate extends IterativeRobot {
             ex.printStackTrace();
         }
         RRCPServer.getInstance();
-        RRCPCommandHandler.getInstance();
         RRCPServer.startServer();
     }
     static CANJaguar jag1, jag2;
@@ -75,7 +74,9 @@ public class RobotTemplate extends IterativeRobot {
     public void testPeriodic() {
     
     }
-    
+    /**
+	 * Dont use this
+	 *
     static RRCPCommand forward = new RRCPCommand(("FORWARD")) {
         public void exacute(DataInputStream dis, DataOutputStream dos) {
             setMotors(1, 1);
@@ -107,5 +108,6 @@ public class RobotTemplate extends IterativeRobot {
             setMotors(0, 0);
         }
     };
+	**/
     
 }

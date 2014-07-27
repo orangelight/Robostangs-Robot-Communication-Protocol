@@ -1,4 +1,6 @@
 
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -75,8 +77,8 @@ public class RRCPServer implements Runnable {
         public RRCPConnectionHandler(SocketConnection s) {
             this.s = s;
             try {
-                dis = new DataInputStream(this.s.openInputStream());
-                dos = new DataOutputStream((this.s.openOutputStream()));
+                dis = new DataInputStream(new BufferedInputStream(s.openInputStream()));
+                dos = new DataOutputStream(new BufferedOutputStream(this.s.openOutputStream()));
             } catch (IOException ex) {
                 System.err.println("Error making data streams on ConnectionHandler: \"" + ex.getMessage() + "\"");
             }
@@ -100,19 +102,32 @@ public class RRCPServer implements Runnable {
             try {
                 this.lastHeartBeat = System.currentTimeMillis();
                 while(System.currentTimeMillis() < this.lastHeartBeat+timeout && RRCPServer.listening) {
-                    while(dis.available() > 0) {
-                        String command = dis.readUTF();
+                    while (dis.available() > 0) {
+                        byte id = dis.readByte();
                         this.lastHeartBeat = System.currentTimeMillis();
-                        if(command.equals("HEARTBEAT")) {
-                            dos.write((byte)21);
+                        if (id == 21) {
+                            dos.write((byte) 21);
                             dos.flush();
                             this.lastHeartBeat = System.currentTimeMillis();
                             System.out.println("Heartbeat Received");
-                        } else if(command.equals("QUIT")) { 
+                            break;
+                        } else if (id == 0) {
                             this.close();
                             break;
-                        } else {
-                            RRCPCommandHandler.executeCommand(command, dis, dos);
+                        } else if (id == 1) {
+                            execute(dis.readUTF(), Byte.valueOf(dis.readByte()));
+                        } else if (id == 2) {
+                            execute(dis.readUTF(), Integer.valueOf(dis.readInt()));
+                        } else if (id == 3) {
+                            execute(dis.readUTF(), Boolean.valueOf(dis.readBoolean()));
+                        } else if (id == 4) {
+                            execute(dis.readUTF(), Double.valueOf(dis.readDouble()));
+                        } else if (id == 5) {
+                            execute(dis.readUTF(), dis.readUTF());
+                        } else if (id == 6) {
+                            execute(dis.readUTF(), this.readDoubleArray());
+                        } else if (id == 7) {
+                            execute(dis.readUTF(), null);
                         }
                     }
                     try {
@@ -126,6 +141,27 @@ public class RRCPServer implements Runnable {
                 System.err.println("Error reading data from client: \"" + ex.getMessage() + "\"");
             }    
             RRCPCommandHandler.onSocketClose();
-        }        
+        }
+        private void execute(final String s, final Object o) {
+            new Thread(new Runnable() {
+                public void run() {
+                    RRCPCommandHandler.executeCommand(s, dos, o);
+                }
+            }).start();
+        }
+
+        private double[] readDoubleArray() {
+            try {
+                int length = dis.readInt();
+                double[] d = new double[length];
+                for (int i = 0; i < length; i++) {
+                    d[i] = dis.readDouble();
+                }
+                return d;
+            } catch (IOException ex) {
+                System.err.println("Error reading data from Client: \"" + ex.getMessage() + "\"");
+            }
+            return new double[0];
+        }
     }
 }

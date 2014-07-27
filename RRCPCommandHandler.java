@@ -1,5 +1,4 @@
 
-import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.util.Vector;
 
@@ -31,11 +30,11 @@ public class RRCPCommandHandler {
         }
     }
     
-    public static void executeCommand(String s, DataInputStream dis, DataOutputStream dos) {
+    protected static void executeCommand(String s, DataOutputStream dos, Object data) {
         for(int i = 0; i < commandlist.size(); i++) {
             RRCPCommand rrcpcommand = (RRCPCommand) commandlist.elementAt(i);
             if(rrcpcommand.getName().equals(s)) { 
-                rrcpcommand.exacute(dis, dos);
+                rrcpcommand.exacute(dos, data);
                 return;
             }
         }

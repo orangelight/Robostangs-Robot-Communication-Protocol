@@ -10,8 +10,8 @@ public abstract class RRCPCommand {
     private String name;
     public RRCPCommand(String n) {
         this.name = n;
-        RRCPComputerTestCommandHandler.getInstance();
-        RRCPComputerTestCommandHandler.addCommand(this);
+        RRCPCommandHandler.getInstance();
+        RRCPCommandHandler.addCommand(this);
     }
     
     public abstract void exacute(DataOutputStream dos, Object data);

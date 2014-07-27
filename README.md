@@ -22,7 +22,7 @@ To get a double in the exacute method use:
 ```
 double d = ((Double)data).doubleValue();
 ```
-Set a RRCPCommand name to SOCKETCLOSED and it will be called when a cleint timesout or disconnects.
+Set a RRCPCommand name to SOCKETCLOSED and it will be called when a client timesout or disconnects.
 Android now supported!!!
 
 Things to do

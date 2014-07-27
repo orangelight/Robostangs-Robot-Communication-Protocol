@@ -18,6 +18,10 @@ static RRCPCommand echo = new RRCPCommand(("ECHO")) {
         }
 };
 ```
+To get a double in the exacute method use: 
+```
+double d = ((Double)data).doubleValue();
+```
 Set a RRCPCommand name to SOCKETCLOSED and it will be called when a cleint timesout or disconnects.
 Android now supported!!!
 

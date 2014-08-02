@@ -277,7 +277,7 @@ public class RRCPClient {
             if (isNull == null) {
                 return -1;
             }
-            return (Integer) ph.getPacket().getData();
+            return (Integer) isNull.getData();
         }
         System.err.println("MUST BE CONNECTED TO ROBOT TO READ DATA!!!");
         return -1;
@@ -398,7 +398,7 @@ public class RRCPClient {
                     System.err.println("Error sleeping: \"" + ex.getMessage() + "\"");
                 }
             }
-            System.err.println("TRIES: " + i);
+            System.err.println("TIME: " + i * 50 + "ms");
             Packet p = packetQueue;
             resetPacketQueue();
             return p;

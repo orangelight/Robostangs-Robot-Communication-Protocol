@@ -18,6 +18,7 @@ public class RRCPClient {
     private boolean connecting = false;
     private Thread heartBeatThread;
     private PacketHandler ph;
+    private int heartBeatDelay = 0;
 
     /**
      * Sets the robot server IP Sets port to default port (548)
@@ -246,7 +247,14 @@ public class RRCPClient {
             }
         }
     }
-
+    
+    private void setHeatBeatDelay(int i) {
+        this.heartBeatDelay = i;
+    }
+    
+    public int getDelay() {
+        return 50*this.heartBeatDelay;
+    }
     public byte readBytePacket() {
         if (isConnected()) {
             Packet isNull = ph.getPacket();
@@ -377,7 +385,7 @@ public class RRCPClient {
                 }
                 ++i;
             }
-            System.err.println("HEARTBEAT TIME: " + i * 50 + "ms");
+            setHeatBeatDelay(i);
             Packet p = beatQueue;
             resetBeatQueue();
             return p;
@@ -398,7 +406,6 @@ public class RRCPClient {
                     System.err.println("Error sleeping: \"" + ex.getMessage() + "\"");
                 }
             }
-            System.err.println("TIME: " + i * 50 + "ms");
             Packet p = packetQueue;
             resetPacketQueue();
             return p;

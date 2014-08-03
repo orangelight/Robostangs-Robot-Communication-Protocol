@@ -127,6 +127,8 @@ public class RRCPComputerTestServer implements Runnable {
                         } else if (id == 6) {
                             execute(dis.readUTF(), this.readDoubleArray());
                         } else if (id == 7) {
+                            execute(dis.readUTF(), this.readByteArray());
+                        } else if (id == 8) {
                             execute(dis.readUTF(), null);
                         }
                     }
@@ -163,7 +165,21 @@ public class RRCPComputerTestServer implements Runnable {
             } catch (IOException ex) {
                 System.err.println("Error reading data from Client: \"" + ex.getMessage() + "\"");
             }
-            return null;
+            return new double[0];
+        }
+        
+        private byte[] readByteArray() {
+            try {
+                int length = dis.readInt();
+                byte[] b = new byte[length];
+                for (int i = 0; i < length; i++) {
+                    b[i] = dis.readByte();
+                }
+                return b;
+            } catch (IOException ex) {
+                System.err.println("Error reading data from Client: \"" + ex.getMessage() + "\"");
+            }
+            return new byte[0];
         }
     }
 }

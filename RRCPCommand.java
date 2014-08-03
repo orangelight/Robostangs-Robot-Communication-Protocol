@@ -10,8 +10,8 @@ public abstract class RRCPCommand {
     private String name;
     public RRCPCommand(String n) {
         this.name = n;
-        RRCPCommandHandler.getInstance();
-        RRCPCommandHandler.addCommand(this);
+        RRCPComputerTestCommandHandler.getInstance();
+        RRCPComputerTestCommandHandler.addCommand(this);
     }
     
     public abstract void exacute(DataOutputStream dos, Object data);
@@ -77,6 +77,20 @@ public abstract class RRCPCommand {
             dos.writeInt(length);
             for (int i = 0; i < d.length; i++) {
                 dos.writeDouble(d[i]);
+            }
+            dos.flush();
+        } catch (IOException ex) {
+            System.err.println("Error reading data from Client: \"" + ex.getMessage() + "\"");
+        }
+    }
+    
+    protected void sendByteArray(byte b[], DataOutputStream dos) {
+        try {
+            int length = b.length;
+            dos.write(7);
+            dos.writeInt(length);
+            for (int i = 0; i < b.length; i++) {
+                dos.write(b[i]);
             }
             dos.flush();
         } catch (IOException ex) {

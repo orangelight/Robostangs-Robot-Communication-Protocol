@@ -95,7 +95,7 @@ public class RRCPClient {
     public synchronized void sendCommand(String command) {
         if (isConnected()) {
             try {
-                dos.write(7);
+                dos.write(8);
                 dos.writeUTF(command);
                 dos.flush();
             } catch (IOException ex) {
@@ -199,6 +199,26 @@ public class RRCPClient {
                 dos.writeInt(d.length);
                 for (int i = 0; i < d.length; i++) {
                     dos.writeDouble(d[i]);
+                }
+                dos.flush();
+
+            } catch (IOException ex) {
+                System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
+                this.close();
+            }
+        } else {
+            System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
+        }
+    }
+    
+    public void sendCommandWithByteArray(String command, byte b[]) {
+        if (isConnected()) {
+            try {
+                dos.write(7);
+                dos.writeUTF(command);
+                dos.writeInt(b.length);
+                for (int i = 0; i < b.length; i++) {
+                    dos.writeByte(b[i]);
                 }
                 dos.flush();
 
@@ -325,6 +345,18 @@ public class RRCPClient {
         }
         System.err.println("MUST BE CONNECTED TO ROBOT TO READ DATA!!!");
         return new double[0];
+    }
+    
+    public byte[] readByteArrayPacket() {
+        if (isConnected()) {
+            Packet isNull = ph.getPacket();
+            if (isNull == null) {
+                return new byte[0];
+            }
+            return (byte[]) isNull.getData();
+        }
+        System.err.println("MUST BE CONNECTED TO ROBOT TO READ DATA!!!");
+        return new byte[0];
     }
 
     public void close() {
@@ -455,6 +487,9 @@ public class RRCPClient {
             } else if (id == 6) {
                 data = readDoubleArray();
                 ph.addPacketToQueue(this);
+            } else if (id == 7) {
+                data = readByteArray();
+                ph.addPacketToQueue(this);
             } else if (id == 100) {
             } else {
                 data = null;
@@ -527,5 +562,19 @@ public class RRCPClient {
             System.err.println("Error reading data from Robot Server: \"" + ex.getMessage() + "\"");
         }
         return new double[0];
+    }
+    
+    private byte[] readByteArray() {
+        try {
+            int length = dis.readInt();
+            byte[] b = new byte[length];
+            for (int i = 0; i < length; i++) {
+                b[i] = dis.readByte();
+            }
+            return b;
+        } catch (IOException ex) {
+            System.err.println("Error reading data from Robot Server: \"" + ex.getMessage() + "\"");
+        }
+        return new byte[0];
     }
 }

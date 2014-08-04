@@ -10,8 +10,8 @@ public abstract class RRCPCommand {
     private String name;
     public RRCPCommand(String n) {
         this.name = n;
-        RRCPComputerTestCommandHandler.getInstance();
-        RRCPComputerTestCommandHandler.addCommand(this);
+        RRCPComputerTestServer.getInstance();
+        RRCPComputerTestServer.addCommand(this);
     }
     
     public abstract void exacute(DataOutputStream dos, Object data);
@@ -97,5 +97,4 @@ public abstract class RRCPCommand {
             System.err.println("Error reading data from Client: \"" + ex.getMessage() + "\"");
         }
     }
-    
 }

@@ -6,6 +6,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 
 /**
  *
@@ -19,6 +20,8 @@ public class RRCPComputerTestServer implements Runnable {
     private static Thread mainThread;
     private static RRCPComputerTestServer instance;
     private static ServerSocket server;
+    private static ArrayList<RRCPCommand> commandlist;
+    private static RRCPCommand closeSocketCommand;
 
     public static RRCPComputerTestServer getInstance() {
         if (instance == null) {
@@ -28,6 +31,7 @@ public class RRCPComputerTestServer implements Runnable {
     }
 
     private RRCPComputerTestServer() {
+        commandlist = new ArrayList<>();
         mainThread = new Thread(this);
     }
 
@@ -142,14 +146,14 @@ public class RRCPComputerTestServer implements Runnable {
             } catch (IOException ex) {
                 System.err.println("Error reading data from client: \"" + ex.getMessage() + "\"");
             }
-            RRCPComputerTestCommandHandler.onSocketClose();
+            RRCPComputerTestServer.onSocketClose();
         }
 
         private void execute(final String s, final Object o) {
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    RRCPComputerTestCommandHandler.executeCommand(s, dos, o);
+                    RRCPComputerTestServer.executeCommand(s, dos, o);
                 }
             }).start();
         }
@@ -181,5 +185,27 @@ public class RRCPComputerTestServer implements Runnable {
             }
             return new byte[0];
         }
+    }
+    
+    protected static void addCommand(RRCPCommand rrcpcommand) {
+        if(rrcpcommand.getName().equals("SOCKETCLOSED")) closeSocketCommand = rrcpcommand; 
+        else {
+            commandlist.add(rrcpcommand);
+            commandlist.trimToSize();
+        }
+    }
+    
+    private static void executeCommand(String s, DataOutputStream dos, Object data) {
+        for(RRCPCommand rrcpcommand : commandlist) {
+            if(rrcpcommand.getName().equals(s)) { 
+                rrcpcommand.exacute(dos, data);
+                return;
+            }
+        }
+        System.err.println("Command not recognized: \"" + s + "\"\nError incoming!!!");
+    }
+    
+    private static void onSocketClose() {
+        if(closeSocketCommand !=  null) closeSocketCommand.exacute(null, null);
     }
 }

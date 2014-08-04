@@ -27,5 +27,6 @@ Android now supported!!!
 
 Things to do
 =======================================
+- [x] Byte arrays
 - [ ] Maybe have robot server be able to send commands to client
 - [ ] Make sure everything works

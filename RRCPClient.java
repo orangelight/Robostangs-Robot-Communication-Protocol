@@ -395,7 +395,7 @@ public class RRCPClient {
                     System.err.println("Error reading packet ID from robot server: \"" + ex.getMessage() + "\"");
                 }
                 try {
-                    Thread.sleep(50);
+                    Thread.sleep(25);
                 } catch (InterruptedException ex) {
                     System.err.println("Error sleeping: \"" + ex.getMessage() + "\"");
                 }

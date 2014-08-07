@@ -137,7 +137,7 @@ public class RRCPComputerTestServer implements Runnable {
                         }
                     }
                     try {
-                        Thread.sleep(50);
+                        Thread.sleep(25);
                     } catch (InterruptedException ex) {
                         System.err.println("Error sleeping: \"" + ex.getMessage() + "\"");
                     }

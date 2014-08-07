@@ -197,7 +197,7 @@ public class RRCPServer implements Runnable {
         for(int i = 0; i < commandlist.size(); i++) {
             RRCPCommand rrcpcommand = (RRCPCommand) commandlist.elementAt(i);
             if(rrcpcommand.getName().equals(s)) { 
-                rrcpcommand.exacute(dos, data);
+                rrcpcommand.execute(dos, data);
                 return;
             }
         }
@@ -205,6 +205,6 @@ public class RRCPServer implements Runnable {
     }
     
     private static void onSocketClose() {
-        if(closeSocketCommand !=  null) closeSocketCommand.exacute(null, null);
+        if(closeSocketCommand !=  null) closeSocketCommand.execute(null, null);
     }
 }

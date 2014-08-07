@@ -198,7 +198,7 @@ public class RRCPComputerTestServer implements Runnable {
     private static void executeCommand(String s, DataOutputStream dos, Object data) {
         for(RRCPCommand rrcpcommand : commandlist) {
             if(rrcpcommand.getName().equals(s)) { 
-                rrcpcommand.exacute(dos, data);
+                rrcpcommand.execute(dos, data);
                 return;
             }
         }
@@ -206,6 +206,6 @@ public class RRCPComputerTestServer implements Runnable {
     }
     
     private static void onSocketClose() {
-        if(closeSocketCommand !=  null) closeSocketCommand.exacute(null, null);
+        if(closeSocketCommand !=  null) closeSocketCommand.execute(null, null);
     }
 }

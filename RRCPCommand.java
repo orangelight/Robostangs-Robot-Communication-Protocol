@@ -10,11 +10,11 @@ public abstract class RRCPCommand {
     private String name;
     public RRCPCommand(String n) {
         this.name = n;
-        RRCPComputerTestServer.getInstance();
-        RRCPComputerTestServer.addCommand(this);
+        RRCPServer.getInstance();
+        RRCPServer.addCommand(this);
     }
     
-    public abstract void exacute(DataOutputStream dos, Object data);
+    public abstract void execute(DataOutputStream dos, Object data);
     
     public String getName() {
         return name;

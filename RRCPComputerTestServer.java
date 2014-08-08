@@ -119,21 +119,21 @@ public class RRCPComputerTestServer implements Runnable {
                             this.close();
                             break;
                         } else if (id == 1) {
-                            execute(dis.readUTF(), dis.readByte());
+                            execute(dis.readByte(), dis.readUTF(), dis.readByte());
                         } else if (id == 2) {
-                            execute(dis.readUTF(), dis.readInt());
+                            execute(dis.readByte(), dis.readUTF(), dis.readInt());
                         } else if (id == 3) {
-                            execute(dis.readUTF(), dis.readBoolean());
+                            execute(dis.readByte(), dis.readUTF(), dis.readBoolean());
                         } else if (id == 4) {
-                            execute(dis.readUTF(), dis.readDouble());
+                            execute(dis.readByte(), dis.readUTF(), dis.readDouble());
                         } else if (id == 5) {
-                            execute(dis.readUTF(), dis.readUTF());
+                            execute(dis.readByte(), dis.readUTF(), dis.readUTF());
                         } else if (id == 6) {
-                            execute(dis.readUTF(), this.readDoubleArray());
+                            execute(dis.readByte(), dis.readUTF(), this.readDoubleArray());
                         } else if (id == 7) {
-                            execute(dis.readUTF(), this.readByteArray());
+                            execute(dis.readByte(), dis.readUTF(), this.readByteArray());
                         } else if (id == 8) {
-                            execute(dis.readUTF(), null);
+                            execute(dis.readByte(), dis.readUTF(), null);
                         }
                     }
                     try {
@@ -148,12 +148,12 @@ public class RRCPComputerTestServer implements Runnable {
             }
             RRCPComputerTestServer.onSocketClose();
         }
-
-        private void execute(final String s, final Object o) {
+        
+        private void execute(final byte address, final String s, final Object o) {
             new Thread(new Runnable() {
                 @Override
                 public void run() {
-                    RRCPComputerTestServer.executeCommand(s, dos, o);
+                    RRCPComputerTestServer.executeCommand(s, dos, address, o);
                 }
             }).start();
         }
@@ -194,11 +194,11 @@ public class RRCPComputerTestServer implements Runnable {
             commandlist.trimToSize();
         }
     }
-    
-    private static void executeCommand(String s, DataOutputStream dos, Object data) {
+  
+    private static void executeCommand(String s, DataOutputStream dos, byte address,  Object data) {
         for(RRCPCommand rrcpcommand : commandlist) {
             if(rrcpcommand.getName().equals(s)) { 
-                rrcpcommand.execute(dos, data);
+                rrcpcommand.serverExecute(dos, data, address);
                 return;
             }
         }

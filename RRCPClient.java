@@ -19,6 +19,7 @@ public class RRCPClient {
     private Thread heartBeatThread;
     private PacketHandler ph;
     private int heartBeatDelay = 0;
+    private byte currentAddress = -1;
 
     /**
      * Sets the robot server IP Sets port to default port (548)
@@ -91,13 +92,27 @@ public class RRCPClient {
     public boolean isConnecting() {
         return connecting;
     }
+    
+    public byte getCurrentAddress() {
+        return currentAddress;
+    }
+    
+    private synchronized byte addCurrentAdress() {
+        if(currentAddress == 100) currentAddress = -1;
+        ph.packetQueue[++currentAddress] = null;
+        return getCurrentAddress();
+    }
 
-    public synchronized void sendCommand(String command) {
+    public byte sendCommand(String command) {
+        byte address = -2;
         if (isConnected()) {
             try {
+                address = addCurrentAdress();
                 dos.write(8);
+                dos.write(address);
                 dos.writeUTF(command);
                 dos.flush();
+                return address;
             } catch (IOException ex) {
                 System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
                 this.close();
@@ -105,15 +120,20 @@ public class RRCPClient {
         } else {
             System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
         }
+        return address;
     }
 
-    public void sendCommandWithByte(String command, byte d) {
+    public byte sendCommandWithByte(String command, byte d) {
+        byte address = -2;
         if (isConnected()) {
             try {
+                address = addCurrentAdress();
                 dos.write(1);
+                dos.write(address);
                 dos.writeUTF(command);
                 dos.writeByte(d);
                 dos.flush();
+                return address;
             } catch (IOException ex) {
                 System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
                 this.close();
@@ -121,16 +141,20 @@ public class RRCPClient {
         } else {
             System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
         }
+        return address;
     }
 
-    public void sendCommandWithDouble(String command, double d) {
+    public byte sendCommandWithDouble(String command, double d) {
+        byte address = -2;
         if (isConnected()) {
             try {
+                address = addCurrentAdress();
                 dos.write(4);
+                dos.write(address);
                 dos.writeUTF(command);
                 dos.writeDouble(d);
                 dos.flush();
-
+                return address;
             } catch (IOException ex) {
                 System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
                 this.close();
@@ -138,16 +162,20 @@ public class RRCPClient {
         } else {
             System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
         }
+        return address;
     }
 
-    public void sendCommandWithInt(String command, int i) {
+    public byte sendCommandWithInt(String command, int i) {
+        byte address = -2;
         if (isConnected()) {
             try {
+                address = addCurrentAdress();
                 dos.write(2);
+                dos.write(address);
                 dos.writeUTF(command);
                 dos.writeInt(i);
                 dos.flush();
-
+                return address;
             } catch (IOException ex) {
                 System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
                 this.close();
@@ -155,16 +183,20 @@ public class RRCPClient {
         } else {
             System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
         }
+        return address;
     }
 
-    public void sendCommandWithBoolean(String command, boolean b) {
+    public byte sendCommandWithBoolean(String command, boolean b) {
+        byte address = -2;
         if (isConnected()) {
             try {
+                address = addCurrentAdress();
                 dos.write(3);
+                dos.write(address);
                 dos.writeUTF(command);
                 dos.writeBoolean(b);
                 dos.flush();
-
+                return address;
             } catch (IOException ex) {
                 System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
                 this.close();
@@ -172,16 +204,20 @@ public class RRCPClient {
         } else {
             System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
         }
+        return address;
     }
 
-    public void sendCommandWithString(String command, String s) {
+    public byte sendCommandWithString(String command, String s) {
+        byte address = -2;
         if (isConnected()) {
             try {
+                address = addCurrentAdress();
                 dos.write(5);
+                dos.write(address);
                 dos.writeUTF(command);
                 dos.writeUTF(s);
                 dos.flush();
-
+                return address;
             } catch (IOException ex) {
                 System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
                 this.close();
@@ -189,19 +225,23 @@ public class RRCPClient {
         } else {
             System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
         }
+        return address;
     }
 
-    public void sendCommandWithDoubleArray(String command, double d[]) {
+    public byte sendCommandWithDoubleArray(String command, double d[]) {
+        byte address = -2;
         if (isConnected()) {
             try {
+                address = addCurrentAdress();
                 dos.write(6);
+                dos.write(address);
                 dos.writeUTF(command);
                 dos.writeInt(d.length);
                 for (int i = 0; i < d.length; i++) {
                     dos.writeDouble(d[i]);
                 }
                 dos.flush();
-
+                return address;
             } catch (IOException ex) {
                 System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
                 this.close();
@@ -209,19 +249,23 @@ public class RRCPClient {
         } else {
             System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
         }
+        return address;
     }
     
-    public void sendCommandWithByteArray(String command, byte b[]) {
+    public byte sendCommandWithByteArray(String command, byte b[]) {
+        byte address = -2;
         if (isConnected()) {
             try {
+                address = addCurrentAdress();
                 dos.write(7);
+                dos.write(address);
                 dos.writeUTF(command);
                 dos.writeInt(b.length);
                 for (int i = 0; i < b.length; i++) {
                     dos.writeByte(b[i]);
                 }
                 dos.flush();
-
+                return address;
             } catch (IOException ex) {
                 System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
                 this.close();
@@ -229,6 +273,7 @@ public class RRCPClient {
         } else {
             System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
         }
+        return address;
     }
 
     private void sendHeatBeatCommand() {
@@ -275,9 +320,9 @@ public class RRCPClient {
     public int getDelay() {
         return 50*this.heartBeatDelay;
     }
-    public byte readBytePacket() {
+    public byte readBytePacket(byte a) {
         if (isConnected()) {
-            Packet isNull = ph.getPacket();
+            Packet isNull = ph.getPacket(a);
             if (isNull == null) {
                 return -1;
             }
@@ -287,9 +332,9 @@ public class RRCPClient {
         return -1;
     }
 
-    public boolean readBooleanPacket() {
+    public boolean readBooleanPacket(byte a) {
         if (isConnected()) {
-            Packet isNull = ph.getPacket();
+            Packet isNull = ph.getPacket(a);
             if (isNull == null) {
                 return false;
             }
@@ -299,9 +344,9 @@ public class RRCPClient {
         return false;
     }
 
-    public int readIntPacket() {
+    public int readIntPacket(byte a) {
         if (isConnected()) {
-            Packet isNull = ph.getPacket();
+            Packet isNull = ph.getPacket(a);
             if (isNull == null) {
                 return -1;
             }
@@ -311,9 +356,9 @@ public class RRCPClient {
         return -1;
     }
 
-    public double readDoublePacket() {
+    public double readDoublePacket(byte a) {
         if (isConnected()) {
-            Packet isNull = ph.getPacket();
+            Packet isNull = ph.getPacket(a);
             if (isNull == null) {
                 return -1.0;
             }
@@ -323,9 +368,9 @@ public class RRCPClient {
         return -1.0;
     }
 
-    public String readStringPacket() {
+    public String readStringPacket(byte a) {
         if (isConnected()) {         
-            Packet isNull = ph.getPacket();
+            Packet isNull = ph.getPacket(a);
             if (isNull == null) {
                 return "";
             }
@@ -335,9 +380,9 @@ public class RRCPClient {
         return "";
     }
 
-    public double[] readDoubleArrayPacket() {
+    public double[] readDoubleArrayPacket(byte a) {
         if (isConnected()) {
-            Packet isNull = ph.getPacket();
+            Packet isNull = ph.getPacket(a);
             if (isNull == null) {
                 return new double[0];
             }
@@ -347,9 +392,9 @@ public class RRCPClient {
         return new double[0];
     }
     
-    public byte[] readByteArrayPacket() {
+    public byte[] readByteArrayPacket(byte a) {
         if (isConnected()) {
-            Packet isNull = ph.getPacket();
+            Packet isNull = ph.getPacket(a);
             if (isNull == null) {
                 return new byte[0];
             }
@@ -374,12 +419,12 @@ public class RRCPClient {
 
     private class PacketHandler implements Runnable {
 
-        private Packet packetQueue;
+        private Packet[] packetQueue;
         private Packet beatQueue;
         private Thread mainThread;
 
         public PacketHandler() {
-            this.packetQueue = null;
+            this.packetQueue = new Packet[101];
             this.beatQueue = null;
             this.mainThread = new Thread(this);
             this.mainThread.start();
@@ -422,11 +467,10 @@ public class RRCPClient {
             resetBeatQueue();
             return p;
         }
-
-        private synchronized Packet getPacket() {
-            resetPacketQueue();
+        
+        private Packet getPacket(byte a) {
             int i = 0;
-            while (packetQueue == null) {
+            while (packetQueue[a] == null) {
                 ++i;
                 if (i > timeout + 15) {
                     System.err.println("Could not find packet! Packet lost!");
@@ -438,8 +482,7 @@ public class RRCPClient {
                     System.err.println("Error sleeping: \"" + ex.getMessage() + "\"");
                 }
             }
-            Packet p = packetQueue;
-            resetPacketQueue();
+            Packet p = packetQueue[a];
             return p;
         }
 
@@ -448,7 +491,7 @@ public class RRCPClient {
         }
 
         public void addPacketToQueue(Packet p) {
-            packetQueue = p;
+            packetQueue[p.address] = p;
         }
         
         public void resetPacketQueue() {
@@ -464,30 +507,37 @@ public class RRCPClient {
 
         private byte id;
         public Object data;
-
+        private byte address;
         public Packet(byte id) {
             this.id = id;
             if (id == 21) {
                 ph.addPacketToBeatQueue(this);
             } else if (id == 1) {
+                address = readByte();
                 data = readByte();
                 ph.addPacketToQueue(this);
             } else if (id == 2) {
+                address = readByte();
                 data = readInt();
                 ph.addPacketToQueue(this);
             } else if (id == 3) {
+                address = readByte();
                 data = readByte();
                 ph.addPacketToQueue(this);
             } else if (id == 4) {
+                address = readByte();
                 data = readDouble();
                 ph.addPacketToQueue(this);
             } else if (id == 5) {
+                address = readByte();
                 data = readString();
                 ph.addPacketToQueue(this);
             } else if (id == 6) {
+                address = readByte();
                 data = readDoubleArray();
                 ph.addPacketToQueue(this);
             } else if (id == 7) {
+                address = readByte();
                 data = readByteArray();
                 ph.addPacketToQueue(this);
             } else if (id == 100) {

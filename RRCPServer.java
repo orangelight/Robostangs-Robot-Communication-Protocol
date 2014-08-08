@@ -119,21 +119,21 @@ public class RRCPServer implements Runnable {
                             this.close();
                             break;
                         } else if (id == 1) {
-                            execute(dis.readUTF(), Byte.valueOf(dis.readByte()));
+                            execute(dis.readByte(), dis.readUTF(), Byte.valueOf(dis.readByte()));
                         } else if (id == 2) {
-                            execute(dis.readUTF(), Integer.valueOf(dis.readInt()));
+                            execute(dis.readByte(),dis.readUTF(), Integer.valueOf(dis.readInt()));
                         } else if (id == 3) {
-                            execute(dis.readUTF(), Boolean.valueOf(dis.readBoolean()));
+                            execute(dis.readByte(),dis.readUTF(), Boolean.valueOf(dis.readBoolean()));
                         } else if (id == 4) {
-                            execute(dis.readUTF(), Double.valueOf(dis.readDouble()));
+                            execute(dis.readByte(),dis.readUTF(), Double.valueOf(dis.readDouble()));
                         } else if (id == 5) {
-                            execute(dis.readUTF(), dis.readUTF());
+                            execute(dis.readByte(),dis.readUTF(), dis.readUTF());
                         } else if (id == 6) {
-                            execute(dis.readUTF(), this.readDoubleArray());
+                            execute(dis.readByte(),dis.readUTF(), this.readDoubleArray());
                         } else if (id == 7) {
-                            execute(dis.readUTF(), this.readByteArray());
+                            execute(dis.readByte(),dis.readUTF(), this.readByteArray());
                         } else if (id == 8) {
-                            execute(dis.readUTF(), null);
+                            execute(dis.readByte(), dis.readUTF(), null);
                         }
                     }
                     try {
@@ -148,14 +148,14 @@ public class RRCPServer implements Runnable {
             }    
             RRCPServer.onSocketClose();
         }
-        private void execute(final String s, final Object o) {
+         private void execute(final byte address, final String s, final Object o) {
             new Thread(new Runnable() {
                 public void run() {
-                    RRCPServer.executeCommand(s, dos, o);
+                    RRCPServer.executeCommand(s, dos, address, o);
                 }
             }).start();
         }
-
+         
         private double[] readDoubleArray() {
             try {
                 int length = dis.readInt();
@@ -193,18 +193,18 @@ public class RRCPServer implements Runnable {
         }
     }
     
-    private static void executeCommand(String s, DataOutputStream dos, Object data) {
+    private static void executeCommand(String s, DataOutputStream dos, byte address, Object data) {
         for(int i = 0; i < commandlist.size(); i++) {
             RRCPCommand rrcpcommand = (RRCPCommand) commandlist.elementAt(i);
             if(rrcpcommand.getName().equals(s)) { 
-                rrcpcommand.execute(dos, data);
+                rrcpcommand.serverExecute(dos, data, address);
                 return;
             }
         }
         System.err.println("Command not recognized: \"" + s + "\"\nError incoming!!!");
     }
     
-    private static void onSocketClose() {
+     private static void onSocketClose() {
         if(closeSocketCommand !=  null) closeSocketCommand.execute(null, null);
     }
 }

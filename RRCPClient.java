@@ -98,7 +98,7 @@ public class RRCPClient {
     }
     
     private synchronized byte addCurrentAdress() {
-        if(currentAddress == 100) currentAddress = -1;
+        if(currentAddress == 50) currentAddress = -1;
         ph.packetQueue[++currentAddress] = null;
         return getCurrentAddress();
     }
@@ -320,9 +320,9 @@ public class RRCPClient {
     public int getDelay() {
         return 50*this.heartBeatDelay;
     }
-    public byte readBytePacket(byte a) {
+    public byte readBytePacket(byte address) {
         if (isConnected()) {
-            Packet isNull = ph.getPacket(a);
+            Packet isNull = ph.getPacket(address);
             if (isNull == null) {
                 return -1;
             }
@@ -332,9 +332,9 @@ public class RRCPClient {
         return -1;
     }
 
-    public boolean readBooleanPacket(byte a) {
+    public boolean readBooleanPacket(byte address) {
         if (isConnected()) {
-            Packet isNull = ph.getPacket(a);
+            Packet isNull = ph.getPacket(address);
             if (isNull == null) {
                 return false;
             }
@@ -344,9 +344,9 @@ public class RRCPClient {
         return false;
     }
 
-    public int readIntPacket(byte a) {
+    public int readIntPacket(byte address) {
         if (isConnected()) {
-            Packet isNull = ph.getPacket(a);
+            Packet isNull = ph.getPacket(address);
             if (isNull == null) {
                 return -1;
             }
@@ -356,9 +356,9 @@ public class RRCPClient {
         return -1;
     }
 
-    public double readDoublePacket(byte a) {
+    public double readDoublePacket(byte address) {
         if (isConnected()) {
-            Packet isNull = ph.getPacket(a);
+            Packet isNull = ph.getPacket(address);
             if (isNull == null) {
                 return -1.0;
             }
@@ -368,9 +368,9 @@ public class RRCPClient {
         return -1.0;
     }
 
-    public String readStringPacket(byte a) {
+    public String readStringPacket(byte address) {
         if (isConnected()) {         
-            Packet isNull = ph.getPacket(a);
+            Packet isNull = ph.getPacket(address);
             if (isNull == null) {
                 return "";
             }
@@ -380,9 +380,9 @@ public class RRCPClient {
         return "";
     }
 
-    public double[] readDoubleArrayPacket(byte a) {
+    public double[] readDoubleArrayPacket(byte address) {
         if (isConnected()) {
-            Packet isNull = ph.getPacket(a);
+            Packet isNull = ph.getPacket(address);
             if (isNull == null) {
                 return new double[0];
             }
@@ -392,9 +392,9 @@ public class RRCPClient {
         return new double[0];
     }
     
-    public byte[] readByteArrayPacket(byte a) {
+    public byte[] readByteArrayPacket(byte address) {
         if (isConnected()) {
-            Packet isNull = ph.getPacket(a);
+            Packet isNull = ph.getPacket(address);
             if (isNull == null) {
                 return new byte[0];
             }
@@ -424,7 +424,7 @@ public class RRCPClient {
         private Thread mainThread;
 
         public PacketHandler() {
-            this.packetQueue = new Packet[101];
+            this.packetQueue = new Packet[51];
             this.beatQueue = null;
             this.mainThread = new Thread(this);
             this.mainThread.start();
@@ -468,9 +468,9 @@ public class RRCPClient {
             return p;
         }
         
-        private Packet getPacket(byte a) {
+        private Packet getPacket(byte address) {
             int i = 0;
-            while (packetQueue[a] == null) {
+            while (packetQueue[address] == null) {
                 ++i;
                 if (i > timeout + 15) {
                     System.err.println("Could not find packet! Packet lost!");
@@ -482,7 +482,8 @@ public class RRCPClient {
                     System.err.println("Error sleeping: \"" + ex.getMessage() + "\"");
                 }
             }
-            Packet p = packetQueue[a];
+            Packet p = packetQueue[address];
+            packetQueue[address] = null;
             return p;
         }
 

@@ -25,8 +25,11 @@ double d = ((Double)data).doubleValue();
 Set a RRCPCommand name to SOCKETCLOSED and it will be called when a client timesout or disconnects.
 Android now supported!!!
 
+**NOTE:** Safe threading is not supported for reading data from the server!!!
+
 Things to do
 =======================================
 - [x] Byte arrays
 - [ ] Maybe have robot server be able to send commands to client
+- [ ] Make reading date from server thread safe
 - [ ] Make sure everything works

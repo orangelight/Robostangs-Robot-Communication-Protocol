@@ -11,25 +11,23 @@ Example command that echos a string you give it. "ECHO" is the name:
 ```
 static RRCPCommand echo = new RRCPCommand(("ECHO")) {
         @Override
-        public void exacute(DataOutputStream dos, Object data) {
+        public void execute(DataOutputStream dos, Object data) {
             String message = (String)data;
             System.out.println("ECHOING: "+message);
             this.sendString(message, dos);
         }
 };
 ```
-To get a double in the exacute method use: 
+To get a double in the execute method use: 
 ```
 double d = ((Double)data).doubleValue();
 ```
 Set a RRCPCommand name to SOCKETCLOSED and it will be called when a client timesout or disconnects.
 Android now supported!!!
 
-**NOTE:** Safe threading is not supported for reading data from the server!!!
-
 Things to do
 =======================================
 - [x] Byte arrays
 - [ ] Maybe have robot server be able to send commands to client
-- [ ] Make reading date from server thread safe
+- [x] Make reading date from server thread safe
 - [ ] Make sure everything works

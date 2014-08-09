@@ -20,6 +20,7 @@ public class RRCPClient {
     private PacketHandler ph;
     private int heartBeatDelay = 0;
     private byte currentAddress = -1;
+    private final int TIMEOUTNUM = 25;
 
     /**
      * Sets the robot server IP Sets port to default port (548)
@@ -28,15 +29,16 @@ public class RRCPClient {
      */
     public RRCPClient(String host, int timeout) {
         this.host = host;
-        this.timeout = timeout/25;
+        this.timeout = timeout/TIMEOUTNUM;
     }
 
     /**
      * Sets IP to default server IP (10.5.48.2) Sets port to default port (548)
+     * @param timeout Set the timeout in milliseconds
      */
     public RRCPClient(int timeout) {
         host = "10.5.48.2";
-        this.timeout = timeout/25;
+        this.timeout = timeout/TIMEOUTNUM;
     }
 
     /**
@@ -48,7 +50,7 @@ public class RRCPClient {
     public RRCPClient(String host, int timeout, int port) {
         this.host = host;
         this.port = port;
-        this.timeout = timeout/25;
+        this.timeout = timeout/TIMEOUTNUM;
     }
 
     /**
@@ -318,7 +320,7 @@ public class RRCPClient {
     }
     
     public int getDelay() {
-        return 25*this.heartBeatDelay;
+        return TIMEOUTNUM*this.heartBeatDelay;
     }
     public byte readBytePacket(byte address) {
         if (isConnected()) {
@@ -434,13 +436,13 @@ public class RRCPClient {
             while (isConnected()) {
                 try {
                     while (dis.available() > 0) {
-                        new Packet(readByte());
+                        new Packet(readByte());            
                     }
                 } catch (IOException ex) {
                     System.err.println("Error reading packet ID from robot server: \"" + ex.getMessage() + "\"");
                 }
                 try {
-                    Thread.sleep(25);
+                    Thread.sleep(TIMEOUTNUM);
                 } catch (InterruptedException ex) {
                     System.err.println("Error sleeping: \"" + ex.getMessage() + "\"");
                 }
@@ -448,7 +450,6 @@ public class RRCPClient {
         }
 
         private Packet getHeartBeat() {
-            resetBeatQueue();
             int i = 0;
             while (beatQueue == null) {
                 if (i > timeout) {
@@ -456,7 +457,7 @@ public class RRCPClient {
                     return new Packet((byte) 100);
                 }
                 try {
-                    Thread.sleep(25);
+                    Thread.sleep(TIMEOUTNUM);
                 } catch (InterruptedException ex) {
                     System.err.println("Error sleeping: \"" + ex.getMessage() + "\"");
                 }
@@ -472,12 +473,12 @@ public class RRCPClient {
             int i = 0;
             while (packetQueue[address] == null) {
                 ++i;
-                if (i > timeout + 15) {
+                if (i > timeout + 10) {
                     System.err.println("Could not find packet! Packet lost!");
                     return null;
                 }
                 try {
-                    Thread.sleep(25);
+                    Thread.sleep(TIMEOUTNUM);
                 } catch (InterruptedException ex) {
                     System.err.println("Error sleeping: \"" + ex.getMessage() + "\"");
                 }
@@ -493,10 +494,6 @@ public class RRCPClient {
 
         public void addPacketToQueue(Packet p) {
             packetQueue[p.address] = p;
-        }
-        
-        public void resetPacketQueue() {
-            packetQueue = null;
         }
         
         public void resetBeatQueue() {

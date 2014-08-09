@@ -37,4 +37,5 @@ Things to do
 - [x] Byte arrays
 - [ ] Maybe have robot server be able to send commands to client
 - [x] Make reading date from server thread safe
+- [ ] Test out different timings of cleint and server
 - [ ] Make sure everything works

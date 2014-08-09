@@ -28,7 +28,7 @@ public class RRCPClient {
      */
     public RRCPClient(String host, int timeout) {
         this.host = host;
-        this.timeout = timeout;
+        this.timeout = timeout/25;
     }
 
     /**
@@ -36,7 +36,7 @@ public class RRCPClient {
      */
     public RRCPClient(int timeout) {
         host = "10.5.48.2";
-        this.timeout = timeout;
+        this.timeout = timeout/25;
     }
 
     /**
@@ -48,7 +48,7 @@ public class RRCPClient {
     public RRCPClient(String host, int timeout, int port) {
         this.host = host;
         this.port = port;
-        this.timeout = timeout;
+        this.timeout = timeout/25;
     }
 
     /**
@@ -318,7 +318,7 @@ public class RRCPClient {
     }
     
     public int getDelay() {
-        return 50*this.heartBeatDelay;
+        return 25*this.heartBeatDelay;
     }
     public byte readBytePacket(byte address) {
         if (isConnected()) {
@@ -456,7 +456,7 @@ public class RRCPClient {
                     return new Packet((byte) 100);
                 }
                 try {
-                    Thread.sleep(50);
+                    Thread.sleep(25);
                 } catch (InterruptedException ex) {
                     System.err.println("Error sleeping: \"" + ex.getMessage() + "\"");
                 }
@@ -477,7 +477,7 @@ public class RRCPClient {
                     return null;
                 }
                 try {
-                    Thread.sleep(50);
+                    Thread.sleep(25);
                 } catch (InterruptedException ex) {
                     System.err.println("Error sleeping: \"" + ex.getMessage() + "\"");
                 }

@@ -12,8 +12,8 @@ public class RRCPClient {
     private DataInputStream dis;
     private DataOutputStream dos;
     private String host;
-    private int port = 548;
-    private int timeout = 30;
+    private int port;
+    private int timeout;
     private boolean connected = false;
     private boolean connecting = false;
     private Thread heartBeatThread;
@@ -26,10 +26,10 @@ public class RRCPClient {
      * Sets the robot server IP Sets port to default port (548)
      *
      * @param host Server IP
+     * @param timeout timeout in milliseconds
      */
     public RRCPClient(String host, int timeout) {
-        this.host = host;
-        this.timeout = timeout/TIMEOUTNUM;
+        this(host, timeout, 548);    
     }
 
     /**
@@ -37,8 +37,7 @@ public class RRCPClient {
      * @param timeout Set the timeout in milliseconds
      */
     public RRCPClient(int timeout) {
-        host = "10.5.48.2";
-        this.timeout = timeout/TIMEOUTNUM;
+        this("10.5.48.2", timeout, 548);        
     }
 
     /**

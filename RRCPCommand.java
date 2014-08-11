@@ -11,14 +11,14 @@ public abstract class RRCPCommand {
     private byte currentAddress;
     public RRCPCommand(String n) {
         this.name = n;
-        RRCPComputerTestServer.getInstance();
-        RRCPComputerTestServer.addCommand(this);
+        RRCPServer.getInstance();
+        RRCPServer.addCommand(this);
     }
     protected void serverExecute(DataOutputStream dos, Object data, byte address) {
         currentAddress = address;
         execute(dos, data);
     }
-    public abstract void execute(DataOutputStream dos, Object data);
+    protected abstract void execute(DataOutputStream dos, Object data);
     
     public String getName() {
         return name;

@@ -1,4 +1,5 @@
 
+import edu.wpi.first.wpilibj.Timer;
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
@@ -17,7 +18,7 @@ public class RRCPServer implements Runnable {
     
     private static boolean listening = true;
     private static int port = 548;
-    private static int timeout = 5000;
+    private static double timeout = 5;
     private static Thread mainThread;
     private static RRCPServer instance;
     private static ServerSocketConnection server;
@@ -77,7 +78,7 @@ public class RRCPServer implements Runnable {
         private SocketConnection s;
         private DataInputStream dis;
         private DataOutputStream dos;
-        private long lastHeartBeat;
+        private double lastHeartBeat;
         public RRCPConnectionHandler(SocketConnection s) {
             this.s = s;
             try {
@@ -104,15 +105,14 @@ public class RRCPServer implements Runnable {
         
         private void protocol() {
             try {
-                this.lastHeartBeat = System.currentTimeMillis();
-                while(System.currentTimeMillis() < this.lastHeartBeat+timeout && RRCPServer.listening) {
+                this.lastHeartBeat = Timer.getFPGATimestamp();
+                while(Timer.getFPGATimestamp() <  this.lastHeartBeat+timeout && RRCPServer.listening) {
                     while (dis.available() > 0) {
                         byte id = dis.readByte();
-                        this.lastHeartBeat = System.currentTimeMillis();
                         if (id == 21) {
                             dos.write((byte) 21);
                             dos.flush();
-                            this.lastHeartBeat = System.currentTimeMillis();
+                            this.lastHeartBeat = Timer.getFPGATimestamp();
                             System.out.println("Heartbeat Received");
                             break;
                         } else if (id == 0) {
@@ -137,7 +137,7 @@ public class RRCPServer implements Runnable {
                         }
                     }
                     try {
-                        Thread.sleep(10);
+                        Thread.sleep(25);
                     } catch (InterruptedException ex) {
                         System.err.println("Error sleeping: \"" + ex.getMessage() + "\"");
                     }

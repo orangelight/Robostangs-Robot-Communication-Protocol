@@ -38,4 +38,5 @@ Things to do
 - [ ] Maybe have robot server be able to send commands to client
 - [x] Make reading date from server thread safe
 - [ ] Test out different timings of cleint and server
+- [ ] Replace the address system or make it more hidden
 - [ ] Make sure everything works

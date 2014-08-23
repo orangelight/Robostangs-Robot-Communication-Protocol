@@ -28,6 +28,8 @@ To get a double in the execute method use:
 ```
 double d = ((Double)data).doubleValue();
 ```
+^This should get much simpler when they update Java versions
+
 Set a RRCPCommand name to SOCKETCLOSED and it will be called when a client timesout or disconnects.
 Android now supported!!!
 

@@ -41,4 +41,5 @@ Things to do
 - [x] Make reading date from server thread safe
 - [ ] Test out different timings of cleint and server
 - [ ] Replace the address system or make it more hidden
+- [ ] Axis Camera Support
 - [ ] Make sure everything works

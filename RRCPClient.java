@@ -6,31 +6,40 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
 
+/**  
+ * @author Alex
+ * Robostangs, Team 0548
+ * @version 1.0
+ */
 public class RRCPClient {
-
-    private Socket s;
-    private DataInputStream dis;
-    private DataOutputStream dos;
-    private String host;
-    private int port;
-    private int timeout;
-    private boolean connected = false;
-    private boolean connecting = false;
-    private Thread heartBeatThread;
-    private PacketHandler packetHandler;
-    private int heartBeatDelay = 0;
-    private byte currentAddress = -1;
-    private final int TIMEOUT_NUM = 25;
+    
+    private Socket socket; //Socket used to connect to server
+    private DataInputStream dis; //InputStream to get data from server
+    private DataOutputStream dos; //OutputStream to send data to server
+    private String host; //The IP of server
+    private int port; //Port of server. sould be 1180 if use in comp.
+    private int timeout; //Timeout for getting data from server. timeout in ms equals timeout*TIMEOUT_NUM
+    private boolean connected = false; //true if conncted to server false if not connected
+    private boolean connecting = false; //true of client is on proccese of connecting to server
+    private Thread heartBeatThread; //Thread used to send a heartbeat to server every second
+    private PacketHandler packetHandler; //Used to read all data from server and manage it in to packets from client to read
+    private int heartBeatDelay = 0; //The time it takes for server to respond to heartbeat and for us to read it. Delay in ms = heartBeatDela*TIMEOUT_NUM
+    private byte currentAddress = -1; //Used by cleint to set address to exbounding packets
+    private final int TIMEOUT_NUM = 25; //Used to convert from timeout time to ms
+    
+    /**
+     * Stores packet id's for reading and sending packets
+     */
     private static enum PacketTypes {
         Command((byte)8), Byte((byte)1), Integer((byte)2), Boolean((byte)3), Double((byte)4), String((byte)5), DoubleArray((byte)6), ByteArray((byte)7), HeartBeat((byte)21);
         private byte id;
-        PacketTypes(byte b) { this.id = b; }
+        private PacketTypes(byte b) { this.id = b; }
         public byte getID() { return id; }
     }
 
     /**
      * Sets the robot server IP Sets port to default port (548)
-     *
+     * Port must be set to 1180 for competitions
      * @param host Server IP
      * @param timeout timeout in milliseconds
      */
@@ -40,6 +49,7 @@ public class RRCPClient {
 
     /**
      * Sets IP to default server IP (10.5.48.2) Sets port to default port (548)
+     * Port must be set to 1180 for competitions
      * @param timeout Set the timeout in milliseconds
      */
     public RRCPClient(int timeout) {
@@ -48,8 +58,9 @@ public class RRCPClient {
 
     /**
      * Sets the robot server IP and port
-     *
+     * Port must be set to 1180 for competitions
      * @param host Server IP
+     * @param timeout Timeout in milliseconds
      * @param port Server Port
      */
     public RRCPClient(String host, int timeout, int port) {
@@ -62,18 +73,18 @@ public class RRCPClient {
      * client
      */
     public void connect() {
-        Thread t = new Thread(new Runnable() {
+        new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
                     connecting = true;
-                    s = new Socket(host, port);
-                    dis = new DataInputStream(new BufferedInputStream(s.getInputStream()));
-                    dos = new DataOutputStream(new BufferedOutputStream(s.getOutputStream()));
+                    socket = new Socket(host, port);
+                    dis = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
+                    dos = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
                     connected = true;
-                    packetHandler = new PacketHandler();
+                    packetHandler = new PacketHandler(); //Starts teh packet handler
                     heartBeatThread = new Thread(new HeartBeatThread());
-                    heartBeatThread.start();
+                    heartBeatThread.start(); //Starts heatbeats
                 } catch (IOException ex) {
                     System.err.println("Error Connecting to Robot Server: \"" + ex.getMessage() + "\"");
                     close();
@@ -82,8 +93,7 @@ public class RRCPClient {
                 }
 
             }
-        });
-        t.start();
+        }).start();
     }
 
     /**
@@ -94,21 +104,33 @@ public class RRCPClient {
     public boolean isConnected() {
         return connected;
     }
-
+    /**
+     * Tells whether client is connecting to robot server
+     *
+     * @return true if connecting
+     */
     public boolean isConnecting() {
         return connecting;
     }
-    
+    /**
+     * Gets the last address assigned to packet send to server 
+     * The values can range from 0 to 50
+     * @return address of packet last sent
+     */
     public byte getCurrentAddress() {
         return currentAddress;
     }
     
     private synchronized byte addCurrentAdress() {
-        if(currentAddress == 50) currentAddress = -1;
+        if(currentAddress == 50) currentAddress = -1; //if last packet sent had address of 50 change currentAdress back to -1 to be changed to 0
         packetHandler.packetQueue[++currentAddress] = null;
         return getCurrentAddress();
     }
-
+    /**
+     * Sends command to server if connect
+     * @param command Name of command sending to server
+     * @return The address used to read returning data from server
+     */
     public byte sendCommand(String command) {
         byte address = -2;
         if (isConnected()) {
@@ -128,8 +150,13 @@ public class RRCPClient {
         }
         return address;
     }
-
-    public byte sendCommandWithByte(String command, byte d) {
+    /**
+     * Sends command with byte data to server if connected
+     * @param command Name of command sending to server
+     * @param b value of byte data sent with the command
+     * @return The address used to read returning data from server
+     */
+    public byte sendCommandWithByte(String command, byte b) {
         byte address = -2;
         if (isConnected()) {
             try {
@@ -137,7 +164,7 @@ public class RRCPClient {
                 dos.write(PacketTypes.Byte.getID());
                 dos.write(address);
                 dos.writeUTF(command);
-                dos.writeByte(d);
+                dos.writeByte(b);
                 dos.flush();
                 return address;
             } catch (IOException ex) {
@@ -149,7 +176,13 @@ public class RRCPClient {
         }
         return address;
     }
-
+    /**
+     * 
+     * Sends command with double data to server if connected
+     * @param command Name of command sending to server
+     * @param d value of double data sent with the command
+     * @return The address used to read returning data from server
+     */
     public byte sendCommandWithDouble(String command, double d) {
         byte address = -2;
         if (isConnected()) {
@@ -170,7 +203,12 @@ public class RRCPClient {
         }
         return address;
     }
-
+    /**
+     * Sends command with int data to server if connected
+     * @param command Name of command sending to server
+     * @param i value of int data sent with command
+     * @return The address used to read returning data from server
+     */
     public byte sendCommandWithInt(String command, int i) {
         byte address = -2;
         if (isConnected()) {
@@ -191,7 +229,12 @@ public class RRCPClient {
         }
         return address;
     }
-
+    /**
+     * Sends command with boolean data to server if connected
+     * @param command Name of command sending to server
+     * @param b value of boolean data sent with command
+     * @return The address used to read returning data from server
+     */
     public byte sendCommandWithBoolean(String command, boolean b) {
         byte address = -2;
         if (isConnected()) {
@@ -212,7 +255,12 @@ public class RRCPClient {
         }
         return address;
     }
-
+    /**
+     * Sends command with String data to server if connected
+     * @param command Name of command sending to server
+     * @param s value of String data sent with command
+     * @return The address used to read returning data from server
+     */
     public byte sendCommandWithString(String command, String s) {
         byte address = -2;
         if (isConnected()) {
@@ -233,7 +281,12 @@ public class RRCPClient {
         }
         return address;
     }
-
+    /**
+     * Sends command with double array data to server if connected
+     * @param command Name of command sending to server
+     * @param d value of double array sent with command
+     * @return The address used to read returning data from server 
+     */
     public byte sendCommandWithDoubleArray(String command, double d[]) {
         byte address = -2;
         if (isConnected()) {
@@ -257,7 +310,12 @@ public class RRCPClient {
         }
         return address;
     }
-    
+    /**
+     * Sends command with byte array data to server if connected
+     * @param command Name of command sending to server
+     * @param b value of byte array sent with command
+     * @return The address used to read returning data from server 
+     */
     public byte sendCommandWithByteArray(String command, byte b[]) {
         byte address = -2;
         if (isConnected()) {
@@ -285,7 +343,7 @@ public class RRCPClient {
     private void sendHeatBeatCommand() {
         if (isConnected()) {
             try {
-                dos.write(PacketTypes.HeartBeat.getID());
+                dos.write(PacketTypes.HeartBeat.getID()); //Sends byte with value of 21
                 dos.flush();
             } catch (IOException ex) {
                 System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
@@ -298,7 +356,7 @@ public class RRCPClient {
 
     private void sendHeartBeat() {
         this.sendHeatBeatCommand();
-        if (packetHandler.getHeartBeat().getID() == 21) {
+        if (packetHandler.getHeartBeat().getID() == 21) { //Checks if packet has correct id
             this.connected = true;
         } else {
             this.close();
@@ -306,13 +364,13 @@ public class RRCPClient {
     }
 
     private class HeartBeatThread implements Runnable {
-
+        
         @Override
         public void run() {
             while (isConnected()) {
-                sendHeartBeat();
+                sendHeartBeat(); //Sends heartbeat command every second
                 try {
-                    Thread.sleep(2000);
+                    Thread.sleep(1000);
                 } catch (InterruptedException ex) {
                     System.err.println("Error sleeping: \"" + ex.getMessage() + "\"");
                 }
@@ -323,10 +381,18 @@ public class RRCPClient {
     private void setHeatBeatDelay(int i) {
         this.heartBeatDelay = i;
     }
-    
+    /**
+     * Gets the heartbeat delay this is the amount of time it takes for the server to respond and the client to read it
+     * @return Server delay in milliseconds
+     */
     public int getDelay() {
         return TIMEOUT_NUM*this.heartBeatDelay;
     }
+    /**
+     * Reads byte from server with address
+     * @param address address used to identify packet for reading
+     * @return The byte data read from server
+     */
     public byte readBytePacket(byte address) {
         if (isConnected()) {
             Packet isNull = packetHandler.getPacket(address);
@@ -338,19 +404,27 @@ public class RRCPClient {
         System.err.println("MUST BE CONNECTED TO ROBOT TO READ DATA!!!");
         return -1;
     }
-
+    /**
+     * Reads boolean from server with address
+     * @param address address used to identify packet for reading
+     * @return The boolean data read from server
+     */
     public boolean readBooleanPacket(byte address) {
         if (isConnected()) {
             Packet isNull = packetHandler.getPacket(address);
             if (isNull == null) {
                 return false;
             }
-            return ((Byte) isNull.getData() == 1) ? true : false;
+            return ((Byte) isNull.getData() == 1) ? true : false; //lol, not really reading a boolean... just byte values
         }
         System.err.println("MUST BE CONNECTED TO ROBOT TO READ DATA!!!");
         return false;
     }
-
+    /**
+     * Reads int from server with address
+     * @param address address used to identify packet for reading
+     * @return The int data read from server
+     */
     public int readIntPacket(byte address) {
         if (isConnected()) {
             Packet isNull = packetHandler.getPacket(address);
@@ -362,7 +436,11 @@ public class RRCPClient {
         System.err.println("MUST BE CONNECTED TO ROBOT TO READ DATA!!!");
         return -1;
     }
-
+    /**
+     * Reads double from server with address
+     * @param address address used to identify packet for reading
+     * @return The double data read from server
+     */
     public double readDoublePacket(byte address) {
         if (isConnected()) {
             Packet isNull = packetHandler.getPacket(address);
@@ -374,7 +452,11 @@ public class RRCPClient {
         System.err.println("MUST BE CONNECTED TO ROBOT TO READ DATA!!!");
         return -1.0;
     }
-
+    /**
+     * Reads String from server with address
+     * @param address address used to identify packet for reading
+     * @return The String data read from server
+     */
     public String readStringPacket(byte address) {
         if (isConnected()) {         
             Packet isNull = packetHandler.getPacket(address);
@@ -386,7 +468,11 @@ public class RRCPClient {
         System.err.println("MUST BE CONNECTED TO ROBOT TO READ DATA!!!");
         return "";
     }
-
+    /**
+     * Reads double array from server with address
+     * @param address address used to identify packet for reading
+     * @return The double array data read from server
+     */
     public double[] readDoubleArrayPacket(byte address) {
         if (isConnected()) {
             Packet isNull = packetHandler.getPacket(address);
@@ -398,7 +484,11 @@ public class RRCPClient {
         System.err.println("MUST BE CONNECTED TO ROBOT TO READ DATA!!!");
         return new double[0];
     }
-    
+    /**
+     * Reads byte array from server with address
+     * @param address address used to identify packet for reading 
+     * @return The byte array data read from server
+     */
     public byte[] readByteArrayPacket(byte address) {
         if (isConnected()) {
             Packet isNull = packetHandler.getPacket(address);
@@ -410,26 +500,30 @@ public class RRCPClient {
         System.err.println("MUST BE CONNECTED TO ROBOT TO READ DATA!!!");
         return new byte[0];
     }
-
+    /**
+     * Closes client socket from server, which makes isConnected false.
+     * Also called when their is an error sending data to server
+     */
     public void close() {
         try {
             this.connected = false;
-            if (s != null) {
+            if (socket != null) {
                 this.dos.close();
                 this.dis.close();
-                this.s.close();
+                this.socket.close();
             }
         } catch (IOException ex) {
             System.err.println("Error closing socket: \"" + ex.getMessage() + "\"");
         }
     }
+    
     private class PacketHandler implements Runnable {
-        private Packet[] packetQueue;
-        private Packet beatQueue;
-        private Thread mainThread;
+        private Packet[] packetQueue; //Where packets are stored with their address
+        private Packet beatQueue; //Where heartbeat packet is stored
+        private Thread mainThread; //Main thread for packetHandler
 
         public PacketHandler() {
-            this.packetQueue = new Packet[51];
+            this.packetQueue = new Packet[51]; //Makes packet queue
             this.beatQueue = null;
             this.mainThread = new Thread(this);
             this.mainThread.start();
@@ -438,8 +532,8 @@ public class RRCPClient {
         public void run() {
             while (isConnected()) {
                 try {
-                    while (dis.available() > 0) {
-                        new Packet(readByte());            
+                    while (dis.available() > 0) { //Reads packet when it comes in from input stream
+                        new Packet(readByte()); //Makes new packet of id read from byte          
                     }
                 } catch (IOException ex) {
                     System.err.println("Error reading packet ID from robot server: \"" + ex.getMessage() + "\"");
@@ -451,13 +545,13 @@ public class RRCPClient {
                 }
             }
         }
-
+        
         private Packet getHeartBeat() {
             int i = 0;
             while (beatQueue == null) {
                 if (i > timeout) {
                     System.err.println("SERVER DID NOT RESPOND!!!");
-                    return new Packet((byte) 100);
+                    return new Packet((byte) 100); //Returns error packet
                 }
                 try {
                     Thread.sleep(TIMEOUT_NUM);
@@ -510,7 +604,7 @@ public class RRCPClient {
         private byte address;
         public Packet(byte id) {
             this.id = id;
-            if (id == PacketTypes.HeartBeat.getID()) {
+            if (id == PacketTypes.HeartBeat.getID()) { //Determains what type of packet it is from id
                 packetHandler.addPacketToBeatQueue(this);
             } else if (id == PacketTypes.Byte.getID()) {
                 address = readByte();
@@ -540,10 +634,10 @@ public class RRCPClient {
                 address = readByte();
                 data = readByteArray();
                 packetHandler.addPacketToQueue(this);
-            } else if (id == 100) {
+            } else if (id == 100) { //Error packet
             } else {
                 data = null;
-                System.err.println("Packet not reconized!!!");
+                System.err.println("Packet not reconized!!!"); //Unknow packet id
             }
         }
 
@@ -555,7 +649,7 @@ public class RRCPClient {
             return id;
         }
     }
-
+    //The rest is used to read data from inputstream
     private byte readByte() {
         try {
             byte b = dis.readByte();

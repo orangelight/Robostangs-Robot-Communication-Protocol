@@ -14,15 +14,19 @@ import java.util.ArrayList;
  */
 public class RRCPComputerTestServer implements Runnable {
 
-    private static boolean listening = true;
-    private static int port = 548;
-    private static int timeout = 5000;
-    private static Thread mainThread;
-    private static RRCPComputerTestServer instance;
-    private static ServerSocket server;
-    private static ArrayList<RRCPCommand> commandlist;
-    private static RRCPCommand closeSocketCommand;
-
+    private static boolean listening = true; //true if listening for clients
+    private static int port = 548; //Port server is on. Should be 1180 for comp.
+    private static int timeout = 2000; //Timeout for clients heartbeats
+    private static Thread mainThread; //Main thread server runs on
+    private static RRCPComputerTestServer instance; //Instance of server
+    private static ServerSocket server; //Socket that listens for incoming connections
+    private static ArrayList<RRCPCommand> commandlist; //List where commands are stored
+    private static RRCPCommand closeSocketCommand; //Command that is ran when client is dissconncted
+    
+    /**
+     * Creates new instance of server if their is none
+     * @return instance of server
+     */
     public static RRCPComputerTestServer getInstance() {
         if (instance == null) {
             instance = new RRCPComputerTestServer();
@@ -34,18 +38,29 @@ public class RRCPComputerTestServer implements Runnable {
         commandlist = new ArrayList<>();
         mainThread = new Thread(this);
     }
-
+    /**
+     * Starts server for listening for incoming client connections 
+     * @param port What port the server is ran on. Use 1180 for competitions 
+     * @param timeout Timeout for client heartbeat in milliseconds. Don't use number less then 1000
+     */
     public static void startServer(int port, int timeout) {
         RRCPComputerTestServer.port = port;
         RRCPComputerTestServer.timeout = timeout;
         listening = true;
         mainThread.start();
     }
-
+    /**
+     * Starts server for listening for incoming clients connections
+     * Uses default port of 548. Use 1180 in competitions
+     * Uses default timeout of 2000ms
+     */
     public static void startServer() {
+        listening = true;
         mainThread.start();
     }
-
+    /**
+     * Stops server and disconnects all clients
+     */
     public static void stopServer() {
         try {
             listening = false;
@@ -55,7 +70,9 @@ public class RRCPComputerTestServer implements Runnable {
         }
         System.out.println("SERVER SHUT DOWN");
     }
-
+    /**
+     * DO NOT USE!!!!!
+     */
     public void run() {
         try {
             server = new ServerSocket(this.port);
@@ -65,6 +82,7 @@ public class RRCPComputerTestServer implements Runnable {
                 RRCPConnectionHandler ch = new RRCPConnectionHandler(s);
                 Thread tch = new Thread(ch);
                 tch.start();
+                connectionList.add(ch);
             }
         } catch (IOException ex) {
             System.err.println("Error making client socket: \"" + ex.getMessage() + "\"");
@@ -73,10 +91,10 @@ public class RRCPComputerTestServer implements Runnable {
 
     private class RRCPConnectionHandler implements Runnable {
 
-        private Socket s;
+        private Socket s; //Socket server uses to comunicate with client
         private DataInputStream dis;
         private DataOutputStream dos;
-        private long lastHeartBeat;
+        private long lastHeartBeat; //Last heartbeat in system time
 
         public RRCPConnectionHandler(Socket s) {
             this.s = s;
@@ -185,6 +203,18 @@ public class RRCPComputerTestServer implements Runnable {
             }
             return new byte[0];
         }
+        
+        /*
+         * 1.1
+         */
+        private void sendCommand(String command) {
+            try {
+                dos.writeByte(9);
+                dos.writeUTF(command);
+            } catch (IOException ex) {
+                System.err.println("Error sending command to Client: \"" + ex.getMessage() + "\"");
+            }
+        }
     }
     
     protected static void addCommand(RRCPCommand rrcpcommand) {
@@ -207,5 +237,16 @@ public class RRCPComputerTestServer implements Runnable {
     
     private static void onSocketClose() {
         if(closeSocketCommand !=  null) closeSocketCommand.execute(null, null);
+    }
+    
+    /*
+     * 1.1
+     */
+    private static ArrayList<RRCPConnectionHandler> connectionList = new ArrayList<RRCPConnectionHandler>();
+    
+    public static void sendCommand(String command) {
+        for(RRCPConnectionHandler rrcpCon : connectionList) {
+            rrcpCon.sendCommand(command);
+        }
     }
 }

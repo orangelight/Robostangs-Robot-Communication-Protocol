@@ -780,7 +780,7 @@ public class RRCPClient {
     /*
      * 1.1
      */
-    private ArrayList<RRCPClientCommand> commands;
+    private ArrayList<RRCPClientCommand> commands = new ArrayList<RRCPClientCommand>();
 
     private void executeCommand(final String key) {
         new Thread(new Runnable() {

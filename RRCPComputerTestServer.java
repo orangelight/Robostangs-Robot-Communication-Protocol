@@ -36,6 +36,7 @@ public class RRCPComputerTestServer implements Runnable {
 
     private RRCPComputerTestServer() {
         commandlist = new ArrayList<>();
+        connectionList = new ArrayList<>();
         mainThread = new Thread(this);
     }
     /**
@@ -65,6 +66,7 @@ public class RRCPComputerTestServer implements Runnable {
         try {
             listening = false;
             server.close();
+            connectionList.clear();
         } catch (IOException ex) {
             System.err.println("Error closing server: \"" + ex.getMessage() + "\"");
         }
@@ -82,7 +84,7 @@ public class RRCPComputerTestServer implements Runnable {
                 RRCPConnectionHandler ch = new RRCPConnectionHandler(s);
                 Thread tch = new Thread(ch);
                 tch.start();
-                connectionList.add(ch);
+                connectionList.add(getOpenIndex(), ch);
             }
         } catch (IOException ex) {
             System.err.println("Error making client socket: \"" + ex.getMessage() + "\"");
@@ -242,11 +244,21 @@ public class RRCPComputerTestServer implements Runnable {
     /*
      * 1.1
      */
-    private static ArrayList<RRCPConnectionHandler> connectionList = new ArrayList<RRCPConnectionHandler>();
+    private static ArrayList<RRCPConnectionHandler> connectionList;
     
     public static void sendCommand(String command) {
         for(RRCPConnectionHandler rrcpCon : connectionList) {
             rrcpCon.sendCommand(command);
+        }
+    }
+    
+    private static int getOpenIndex() {
+        if(connectionList.size() == 0) return 0;
+        else {
+            for(int i = 0; i < connectionList.size(); ++i) {
+                if(connectionList.get(i) == null) return i;
+            }
+            return connectionList.size();
         }
     }
 }

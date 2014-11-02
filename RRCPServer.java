@@ -11,7 +11,8 @@ import javax.microedition.io.ServerSocketConnection;
 import javax.microedition.io.SocketConnection;
 
 /**
- *
+ * @Deprecated
+ * This verison is no longer supported!
  * @author Alex
  */
 public class RRCPServer implements Runnable {

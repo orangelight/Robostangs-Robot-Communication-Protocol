@@ -25,7 +25,8 @@ public class RRCPClient {
     private PacketHandler packetHandler; //Used to read all data from server and manage it in to packets from client to read
     private int heartBeatDelay = 0; //The time it takes for server to respond to heartbeat and for us to read it. Delay in ms = heartBeatDela*TIMEOUT_NUM
     private byte currentAddress = -1; //Used by cleint to set address to exbounding packets
-    private final int TIMEOUT_NUM = 25; //Used to convert from timeout time to ms
+    private final int TIMEOUT_NUM = 5; //Used to convert from timeout time to ms
+    private boolean autoReconnect = true;
 
     /**
      * Stores packet id's for reading and sending packets
@@ -84,27 +85,32 @@ public class RRCPClient {
      * client
      */
     public void connect() {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    connecting = true;
-                    socket = new Socket(host, port);
-                    dis = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
-                    dos = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
-                    connected = true;
-                    packetHandler = new PacketHandler(); //Starts teh packet handler
-                    heartBeatThread = new Thread(new HeartBeatThread());
-                    heartBeatThread.start(); //Starts heatbeats
-                } catch (IOException ex) {
-                    System.err.println("Error Connecting to Robot Server: \"" + ex.getMessage() + "\"");
-                    close();
-                } finally {
-                    connecting = false;
+        if (isConnected()) {
+            System.err.println("Client is connected already");
+        } else if (isConnecting()) {
+            System.err.println("Client is trying to connect already");
+        } else {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        connecting = true;
+                        socket = new Socket(host, port);
+                        dis = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
+                        dos = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
+                        connected = true;
+                        packetHandler = new PacketHandler(); //Starts teh packet handler
+                        heartBeatThread = new Thread(new HeartBeatThread());
+                        heartBeatThread.start(); //Starts heatbeats
+                        connecting = false;
+                    } catch (IOException ex) {
+                        System.err.println("Error Connecting to Robot Server: \"" + ex.getMessage() + "\"");
+                        connecting = false;
+                        close();
+                    } 
                 }
-
-            }
-        }).start();
+            }).start();
+        }
     }
 
     /**
@@ -161,7 +167,6 @@ public class RRCPClient {
                 return address;
             } catch (IOException ex) {
                 System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
-                this.close();
             }
         } else {
             System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
@@ -189,7 +194,6 @@ public class RRCPClient {
                 return address;
             } catch (IOException ex) {
                 System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
-                this.close();
             }
         } else {
             System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
@@ -218,7 +222,6 @@ public class RRCPClient {
                 return address;
             } catch (IOException ex) {
                 System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
-                this.close();
             }
         } else {
             System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
@@ -246,7 +249,6 @@ public class RRCPClient {
                 return address;
             } catch (IOException ex) {
                 System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
-                this.close();
             }
         } else {
             System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
@@ -274,7 +276,6 @@ public class RRCPClient {
                 return address;
             } catch (IOException ex) {
                 System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
-                this.close();
             }
         } else {
             System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
@@ -302,7 +303,6 @@ public class RRCPClient {
                 return address;
             } catch (IOException ex) {
                 System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
-                this.close();
             }
         } else {
             System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
@@ -333,7 +333,6 @@ public class RRCPClient {
                 return address;
             } catch (IOException ex) {
                 System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
-                this.close();
             }
         } else {
             System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
@@ -364,7 +363,6 @@ public class RRCPClient {
                 return address;
             } catch (IOException ex) {
                 System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
-                this.close();
             }
         } else {
             System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
@@ -561,6 +559,8 @@ public class RRCPClient {
                 this.dos.close();
                 this.dis.close();
                 this.socket.close();
+            } if(autoReconnect) {
+                this.connect();
             }
         } catch (IOException ex) {
             System.err.println("Error closing socket: \"" + ex.getMessage() + "\"");
@@ -722,7 +722,6 @@ public class RRCPClient {
             return i;
         } catch (IOException ex) {
             System.err.println("Error reading data from Robot Server: \"" + ex.getMessage() + "\"");
-            close();
         }
         return -1;
     }
@@ -734,7 +733,6 @@ public class RRCPClient {
             return d;
         } catch (IOException ex) {
             System.err.println("Error reading data from Robot Server: \"" + ex.getMessage() + "\"");
-            close();
         }
         return -1.0;
     }
@@ -745,7 +743,6 @@ public class RRCPClient {
             return s;
         } catch (IOException ex) {
             System.err.println("Error reading data from Robot Server: \"" + ex.getMessage() + "\"");
-            close();
         }
         return "";
     }
@@ -780,7 +777,7 @@ public class RRCPClient {
     /*
      * 1.1
      */
-    private ArrayList<RRCPClientCommand> commands = new ArrayList<RRCPClientCommand>();
+    private ArrayList<RRCPClientCommand> commands = new ArrayList<>();
 
     private void executeCommand(final String key) {
         new Thread(new Runnable() {

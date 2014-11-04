@@ -22,6 +22,7 @@ public class RRCPComputerTestServer implements Runnable {
     private static ServerSocket server; //Socket that listens for incoming connections
     private static ArrayList<RRCPCommand> commandlist; //List where commands are stored
     private static RRCPCommand closeSocketCommand; //Command that is ran when client is dissconncted
+    private static int delay = 5;
     
     /**
      * Creates new instance of server if their is none
@@ -157,7 +158,7 @@ public class RRCPComputerTestServer implements Runnable {
                         }
                     }
                     try {
-                        Thread.sleep(10);
+                        Thread.sleep(delay);
                     } catch (InterruptedException ex) {
                         System.err.println("Error sleeping: \"" + ex.getMessage() + "\"");
                     }
@@ -213,6 +214,7 @@ public class RRCPComputerTestServer implements Runnable {
             try {
                 dos.writeByte(9);
                 dos.writeUTF(command);
+                dos.flush();
             } catch (IOException ex) {
                 System.err.println("Error sending command to Client: \"" + ex.getMessage() + "\"");
             }
@@ -253,7 +255,7 @@ public class RRCPComputerTestServer implements Runnable {
     }
     
     private static int getOpenIndex() {
-        if(connectionList.size() == 0) return 0;
+        if(connectionList.isEmpty()) return 0;
         else {
             for(int i = 0; i < connectionList.size(); ++i) {
                 if(connectionList.get(i) == null) return i;

@@ -552,7 +552,7 @@ public class RRCPClient {
      * Closes client socket from server, which makes isConnected false. Also
      * called when their is an error sending data to server
      */
-    public void close() {
+    private void close() {
         try {
             this.connected = false;
             if (socket != null) {
@@ -565,6 +565,17 @@ public class RRCPClient {
         } catch (IOException ex) {
             System.err.println("Error closing socket: \"" + ex.getMessage() + "\"");
         }
+    }
+    
+    /**
+     * Closes client socket from server, which makes isConnected false.
+     */
+    public void disconnect() {
+        if(autoReconnect) {
+            this.autoReconnect = false;
+            this.close();
+            this.autoReconnect = true;
+        } else this.close();
     }
 
     private class PacketHandler implements Runnable {

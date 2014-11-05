@@ -12,20 +12,19 @@ import java.util.ArrayList;
  *
  * @author Alex
  */
-public class RRCPComputerTestServer implements Runnable {
-
-    private static boolean listening = true; //true if listening for clients
+public class RRCPComputerTestServer {
     private static int port = 548; //Port server is on. Should be 1180 for comp.
     private static int timeout = 2000; //Timeout for clients heartbeats
-    private static Thread mainThread; //Main thread server runs on
     private static RRCPComputerTestServer instance; //Instance of server
     private static ServerSocket server; //Socket that listens for incoming connections
     private static ArrayList<RRCPCommand> commandlist; //List where commands are stored
     private static RRCPCommand closeSocketCommand; //Command that is ran when client is dissconncted
     private static int delay = 5;
-    
+    private static RRCPConnectionListener clientListener;
+
     /**
      * Creates new instance of server if their is none
+     *
      * @return instance of server
      */
     public static RRCPComputerTestServer getInstance() {
@@ -38,34 +37,36 @@ public class RRCPComputerTestServer implements Runnable {
     private RRCPComputerTestServer() {
         commandlist = new ArrayList<>();
         connectionList = new ArrayList<>();
-        mainThread = new Thread(this);
+        clientListener = new RRCPConnectionListener();
     }
+
     /**
-     * Starts server for listening for incoming client connections 
-     * @param port What port the server is ran on. Use 1180 for competitions 
-     * @param timeout Timeout for client heartbeat in milliseconds. Don't use number less then 1000
+     * Starts server for listening for incoming client connections
+     *
+     * @param port What port the server is ran on. Use 1180 for competitions
+     * @param timeout Timeout for client heartbeat in milliseconds. Don't use
+     * number less then 1000
      */
     public static void startServer(int port, int timeout) {
         RRCPComputerTestServer.port = port;
         RRCPComputerTestServer.timeout = timeout;
-        listening = true;
-        mainThread.start();
+        clientListener.startListener();
     }
+
     /**
-     * Starts server for listening for incoming clients connections
-     * Uses default port of 548. Use 1180 in competitions
-     * Uses default timeout of 2000ms
+     * Starts server for listening for incoming clients connections Uses default
+     * port of 548. Use 1180 in competitions Uses default timeout of 2000ms
      */
     public static void startServer() {
-        listening = true;
-        mainThread.start();
+        clientListener.startListener();
     }
+
     /**
      * Stops server and disconnects all clients
      */
     public static void stopServer() {
         try {
-            listening = false;
+            clientListener.stopListener();
             server.close();
             connectionList.clear();
         } catch (IOException ex) {
@@ -73,23 +74,40 @@ public class RRCPComputerTestServer implements Runnable {
         }
         System.out.println("SERVER SHUT DOWN");
     }
-    /**
-     * DO NOT USE!!!!!
-     */
-    public void run() {
-        try {
-            server = new ServerSocket(this.port);
-            while (listening) {
-                Socket s = server.accept();
-                System.out.println("Client Connected");
-                int index = getOpenIndex();
-                RRCPConnectionHandler ch = new RRCPConnectionHandler(s, index);
-                Thread tch = new Thread(ch);
-                tch.start();
-                connectionList.add(index, ch);
+
+    private class RRCPConnectionListener implements Runnable {
+        
+        private Thread mainThread;
+        private boolean listening; //true if listening for clients
+        
+        private RRCPConnectionListener() {
+            mainThread = new Thread(this);
+        }
+        
+        @Override
+        public void run() {
+            try {
+                server = new ServerSocket(port);
+                while (listening) {
+                    Socket s = server.accept();
+                    System.out.println("Client Connected");
+                    RRCPConnectionHandler ch = new RRCPConnectionHandler(s, getOpenIndex());
+                    Thread tch = new Thread(ch);
+                    tch.start();
+                    connectionList.add(getOpenIndex(), ch);
+                }
+            } catch (IOException ex) {
+                System.err.println("Error making client socket: \"" + ex.getMessage() + "\"");
             }
-        } catch (IOException ex) {
-            System.err.println("Error making client socket: \"" + ex.getMessage() + "\"");
+        }
+        
+        public void startListener() {
+            listening = true;
+            mainThread.start();
+        }
+        
+        public void stopListener() {
+           listening = false; 
         }
     }
 
@@ -129,7 +147,7 @@ public class RRCPComputerTestServer implements Runnable {
         private void protocol() {
             try {
                 this.lastHeartBeat = System.currentTimeMillis();
-                while (System.currentTimeMillis() < this.lastHeartBeat + timeout && RRCPComputerTestServer.listening) {
+                while (System.currentTimeMillis() < this.lastHeartBeat + timeout && RRCPComputerTestServer.clientListener.listening) {
                     while (dis.available() > 0) {
                         byte id = dis.readByte();
                         this.lastHeartBeat = System.currentTimeMillis();
@@ -173,7 +191,7 @@ public class RRCPComputerTestServer implements Runnable {
             connectionList.remove(connectionListIndex);
             RRCPComputerTestServer.onSocketClose();
         }
-        
+
         private void execute(final byte address, final String s, final Object o) {
             new Thread(new Runnable() {
                 @Override
@@ -196,7 +214,7 @@ public class RRCPComputerTestServer implements Runnable {
             }
             return new double[0];
         }
-        
+
         private byte[] readByteArray() {
             try {
                 int length = dis.readInt();
@@ -210,7 +228,7 @@ public class RRCPComputerTestServer implements Runnable {
             }
             return new byte[0];
         }
-        
+
         /*
          * 1.1
          */
@@ -224,45 +242,50 @@ public class RRCPComputerTestServer implements Runnable {
             }
         }
     }
-    
+
     protected static void addCommand(RRCPCommand rrcpcommand) {
-        if(rrcpcommand.getName().equals("SOCKETCLOSED")) closeSocketCommand = rrcpcommand; 
-        else {
+        if (rrcpcommand.getName().equals("SOCKETCLOSED")) {
+            closeSocketCommand = rrcpcommand;
+        } else {
             commandlist.add(rrcpcommand);
             commandlist.trimToSize();
         }
     }
-  
-    private static void executeCommand(String s, DataOutputStream dos, byte address,  Object data) {
-        for(RRCPCommand rrcpcommand : commandlist) {
-            if(rrcpcommand.getName().equals(s)) { 
+
+    private static void executeCommand(String s, DataOutputStream dos, byte address, Object data) {
+        for (RRCPCommand rrcpcommand : commandlist) {
+            if (rrcpcommand.getName().equals(s)) {
                 rrcpcommand.serverExecute(dos, data, address);
                 return;
             }
         }
         System.err.println("Command not recognized: \"" + s + "\"\nError incoming!!!");
     }
-    
+
     private static void onSocketClose() {
-        if(closeSocketCommand !=  null) closeSocketCommand.execute(null, null);
+        if (closeSocketCommand != null) {
+            closeSocketCommand.execute(null, null);
+        }
     }
-    
     /*
      * 1.1
      */
     private static ArrayList<RRCPConnectionHandler> connectionList;
-    
+
     public static void sendCommand(String command) {
-        for(RRCPConnectionHandler rrcpCon : connectionList) {
+        for (RRCPConnectionHandler rrcpCon : connectionList) {
             rrcpCon.sendCommand(command);
         }
     }
-    
+
     private static int getOpenIndex() {
-        if(connectionList.isEmpty()) return 0;
-        else {
-            for(int i = 0; i < connectionList.size(); ++i) {
-                if(connectionList.get(i) == null) return i;
+        if (connectionList.isEmpty()) {
+            return 0;
+        } else {
+            for (int i = 0; i < connectionList.size(); ++i) {
+                if (connectionList.get(i) == null) {
+                    return i;
+                }
             }
             return connectionList.size();
         }

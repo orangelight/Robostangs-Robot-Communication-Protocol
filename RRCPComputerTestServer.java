@@ -82,10 +82,11 @@ public class RRCPComputerTestServer implements Runnable {
             while (listening) {
                 Socket s = server.accept();
                 System.out.println("Client Connected");
-                RRCPConnectionHandler ch = new RRCPConnectionHandler(s);
+                int index = getOpenIndex();
+                RRCPConnectionHandler ch = new RRCPConnectionHandler(s, index);
                 Thread tch = new Thread(ch);
                 tch.start();
-                connectionList.add(getOpenIndex(), ch);
+                connectionList.add(index, ch);
             }
         } catch (IOException ex) {
             System.err.println("Error making client socket: \"" + ex.getMessage() + "\"");
@@ -98,9 +99,11 @@ public class RRCPComputerTestServer implements Runnable {
         private DataInputStream dis;
         private DataOutputStream dos;
         private long lastHeartBeat; //Last heartbeat in system time
+        int connectionListIndex;
 
-        public RRCPConnectionHandler(Socket s) {
+        public RRCPConnectionHandler(Socket s, int i) {
             this.s = s;
+            this.connectionListIndex = i;
             try {
                 dis = new DataInputStream(new BufferedInputStream(s.getInputStream()));
                 dos = new DataOutputStream(new BufferedOutputStream(this.s.getOutputStream()));
@@ -167,6 +170,7 @@ public class RRCPComputerTestServer implements Runnable {
             } catch (IOException ex) {
                 System.err.println("Error reading data from client: \"" + ex.getMessage() + "\"");
             }
+            connectionList.remove(connectionListIndex);
             RRCPComputerTestServer.onSocketClose();
         }
         

@@ -11,15 +11,14 @@ import javax.microedition.io.ServerSocketConnection;
 import javax.microedition.io.SocketConnection;
 
 /**
- * @Deprecated
- * This verison is no longer supported!
+ * @deprecated 
  * @author Alex
  */
 public class RRCPServer implements Runnable {
     
     private static boolean listening = true;
     private static int port = 548;
-    private static double timeout = 5;
+    private static double timeout = 3;//Changed from 5 to 3
     private static Thread mainThread;
     private static RRCPServer instance;
     private static ServerSocketConnection server;
@@ -135,6 +134,8 @@ public class RRCPServer implements Runnable {
                             execute(dis.readByte(),dis.readUTF(), this.readByteArray());
                         } else if (id == 8) {
                             execute(dis.readByte(), dis.readUTF(), null);
+                        } else {
+                            System.err.println("Error reading packet: " + id + " is not a know ID!");
                         }
                     }
                     try {

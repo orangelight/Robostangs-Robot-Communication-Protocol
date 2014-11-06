@@ -176,6 +176,8 @@ public class RRCPComputerTestServer {
                             execute(dis.readByte(), dis.readUTF(), this.readByteArray());
                         } else if (id == 8) {
                             execute(dis.readByte(), dis.readUTF(), null);
+                        } else {
+                            System.err.println("Error reading packet: " + id + " is not a know ID!");
                         }
                     }
                     try {

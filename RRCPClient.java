@@ -9,7 +9,7 @@ import java.util.ArrayList;
 
 /**
  * @author Alex Robostangs, Team 0548
- * @version 1.1
+ * @version 1.1.1
  */
 public class RRCPClient {
 
@@ -181,7 +181,7 @@ public class RRCPClient {
      * @param b value of byte data sent with the command
      * @return The address used to read returning data from server
      */
-    public byte sendCommandWithByte(String command, byte b) {
+    private byte sendCommandWithByte(String command, byte b) {
         byte address = -2;
         if (isConnected()) {
             try {
@@ -209,7 +209,7 @@ public class RRCPClient {
      * @param d value of double data sent with the command
      * @return The address used to read returning data from server
      */
-    public byte sendCommandWithDouble(String command, double d) {
+    private byte sendCommandWithDouble(String command, double d) {
         byte address = -2;
         if (isConnected()) {
             try {
@@ -236,7 +236,7 @@ public class RRCPClient {
      * @param i value of int data sent with command
      * @return The address used to read returning data from server
      */
-    public byte sendCommandWithInt(String command, int i) {
+    private byte sendCommandWithInt(String command, int i) {
         byte address = -2;
         if (isConnected()) {
             try {
@@ -255,7 +255,50 @@ public class RRCPClient {
         }
         return address;
     }
-
+    
+    /*
+     * 1.1.1
+     */
+    public byte sendCommandWithNumber(String command, Number n) {
+        if (n instanceof Integer) {
+            return this.sendCommandWithInt(command, n.intValue());
+        } else if (n instanceof Double) {
+            return this.sendCommandWithDouble(command, n.doubleValue());
+        } else if (n instanceof Short) {
+            
+        } else if (n instanceof Byte) {
+            return this.sendCommandWithByte(command, n.byteValue());
+        } else if (n instanceof Long) {
+            
+        } else if (n instanceof Float) {
+        
+        } else {
+            System.err.println("We don't support that number");
+            return -1;
+        }
+        return -1;
+    }
+    
+    public byte sendCommandWithNumberArray(String command, Object array) {
+        if (array instanceof Integer[]) {
+            
+        } else if (array instanceof double[]) {
+            return this.sendCommandWithDoubleArray(command, (double[])array);
+        } else if (array instanceof Short[]) {
+            
+        } else if (array instanceof byte[]) {
+            return this.sendCommandWithByteArray(command, (byte[])array);
+        } else if (array instanceof Long[]) {
+            
+        } else if (array instanceof Float[]) {
+        
+        } else {
+            System.err.println("We don't support that number array");
+            return -1;
+        }
+        return -1;
+    }
+    
     /**
      * Sends command with boolean data to server if connected
      *
@@ -317,7 +360,7 @@ public class RRCPClient {
      * @param d value of double array sent with command
      * @return The address used to read returning data from server
      */
-    public byte sendCommandWithDoubleArray(String command, double d[]) {
+    private byte sendCommandWithDoubleArray(String command, double d[]) {
         byte address = -2;
         if (isConnected()) {
             try {
@@ -347,7 +390,7 @@ public class RRCPClient {
      * @param b value of byte array sent with command
      * @return The address used to read returning data from server
      */
-    public byte sendCommandWithByteArray(String command, byte b[]) {
+    private byte sendCommandWithByteArray(String command, byte[] b) {
         byte address = -2;
         if (isConnected()) {
             try {
@@ -400,7 +443,7 @@ public class RRCPClient {
             while (isConnected()) {
                 sendHeartBeat(); //Sends heartbeat command every second
                 try {
-                    Thread.sleep(1000);
+                    Thread.sleep(500);
                 } catch (InterruptedException ex) {
                     System.err.println("Error sleeping: \"" + ex.getMessage() + "\"");
                 }

@@ -336,7 +336,7 @@ public class RRCPComputerTestServer {
 
     private static void onSocketClose() {
         if (closeSocketCommand != null) {
-            closeSocketCommand.execute(null, null);
+            closeSocketCommand.execute(null);
         }
     }
     /*

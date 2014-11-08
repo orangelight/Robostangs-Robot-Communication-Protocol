@@ -9,22 +9,24 @@ import java.io.IOException;
 public abstract class RRCPCommand {
     private String name;
     private byte currentAddress;
+    DataOutputStream dos;
     public RRCPCommand(String n) {
         this.name = n;
-        RRCPServer.getInstance();
-        RRCPServer.addCommand(this);
+        RRCPComputerTestServer.getInstance();
+        RRCPComputerTestServer.addCommand(this);
     }
-    protected void serverExecute(DataOutputStream dos, Object data, byte address) {
+    protected synchronized void serverExecute(DataOutputStream dos, Object data, byte address) {
         currentAddress = address;
-        execute(dos, data);
+        this.dos = dos;
+        execute(data);
     }
-    protected abstract void execute(DataOutputStream dos, Object data);
+    protected abstract void execute(Object data);
     
     public String getName() {
         return name;
     }
     
-    protected void sendByte(byte b, DataOutputStream dos) {
+    protected void sendByte(byte b) {
         try {
             dos.writeByte(1);
             dos.write(currentAddress);
@@ -35,7 +37,7 @@ public abstract class RRCPCommand {
         }
     }
 
-    protected void sendInt(int i, DataOutputStream dos) {
+    protected void sendInt(int i) {
         try {
             dos.writeByte(2);
             dos.write(currentAddress);
@@ -46,7 +48,7 @@ public abstract class RRCPCommand {
         }
     }
 
-    protected void sendBoolean(boolean b, DataOutputStream dos) {
+    protected void sendBoolean(boolean b) {
         try {
             dos.writeByte(3);
             dos.write(currentAddress);
@@ -57,7 +59,7 @@ public abstract class RRCPCommand {
         }
     }
 
-    protected void sendDouble(double d, DataOutputStream dos) {
+    protected void sendDouble(double d) {
         try {
             dos.writeByte(4);
             dos.write(currentAddress);
@@ -68,7 +70,7 @@ public abstract class RRCPCommand {
         }
     }
 
-    protected void sendString(String s, DataOutputStream dos) {
+    protected void sendString(String s) {
         try {
             dos.writeByte(5);
             dos.write(currentAddress);
@@ -79,7 +81,7 @@ public abstract class RRCPCommand {
         }
     }
     
-    protected void sendDoubleArray(double d[], DataOutputStream dos) {
+    protected void sendDoubleArray(double d[]) {
         try {
             int length = d.length;
             dos.write(6);
@@ -94,7 +96,7 @@ public abstract class RRCPCommand {
         }
     }
     
-    protected void sendByteArray(byte b[], DataOutputStream dos) {
+    protected void sendByteArray(byte b[]) {
         try {
             int length = b.length;
             dos.write(7);

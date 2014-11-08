@@ -14,7 +14,7 @@ import java.util.ArrayList;
  */
 public class RRCPComputerTestServer {
     private static int port = 548; //Port server is on. Should be 1180 for comp.
-    private static int timeout = 2000; //Timeout for clients heartbeats
+    private static int timeout = 750; //Timeout for clients heartbeats
     private static RRCPComputerTestServer instance; //Instance of server
     private static ServerSocket server; //Socket that listens for incoming connections
     private static ArrayList<RRCPCommand> commandlist; //List where commands are stored
@@ -176,8 +176,22 @@ public class RRCPComputerTestServer {
                             execute(dis.readByte(), dis.readUTF(), this.readByteArray());
                         } else if (id == 8) {
                             execute(dis.readByte(), dis.readUTF(), null);
+                        } else if (id == 9) {
+                            execute(dis.readByte(), dis.readUTF(), dis.readLong());
+                        } else if (id == 10) {
+                            execute(dis.readByte(), dis.readUTF(), dis.readShort());
+                        } else if (id == 11) {
+                            execute(dis.readByte(), dis.readUTF(), dis.readFloat());
+                        } else if (id == 12) {
+                            execute(dis.readByte(), dis.readUTF(), this.readIntegerArray());
+                        } else if (id == 13) {
+                            execute(dis.readByte(), dis.readUTF(), this.readLongArray());
+                        } else if (id == 14) {
+                            execute(dis.readByte(), dis.readUTF(), this.readShortArray());
+                        } else if (id == 15) {
+                            execute(dis.readByte(), dis.readUTF(), this.readFloatArray());
                         } else {
-                            System.err.println("Error reading packet: " + id + " is not a know ID!");
+                            System.err.println("Error reading packet: " + id + " is not a known ID!");
                         }
                     }
                     try {
@@ -230,13 +244,69 @@ public class RRCPComputerTestServer {
             }
             return new byte[0];
         }
+        
+        private int[] readIntegerArray() {
+            try {
+                int length = dis.readInt();
+                int[] i = new int[length];
+                for (int x = 0; x < length; x++) {
+                    i[x] = dis.readInt();
+                }
+                return i;
+            } catch (IOException ex) {
+                System.err.println("Error reading data from Client: \"" + ex.getMessage() + "\"");
+            }
+            return new int[0];
+        }
+        
+        private long[] readLongArray() {
+            try {
+                int length = dis.readInt();
+                long[] l = new long[length];
+                for (int i = 0; i < length; i++) {
+                    l[i] = dis.readLong();
+                }
+                return l;
+            } catch (IOException ex) {
+                System.err.println("Error reading data from Client: \"" + ex.getMessage() + "\"");
+            }
+            return new long[0];
+        }
+        
+        private short[] readShortArray() {
+            try {
+                int length = dis.readInt();
+                short[] s = new short[length];
+                for (int i = 0; i < length; i++) {
+                    s[i] = dis.readShort();
+                }
+                return s;
+            } catch (IOException ex) {
+                System.err.println("Error reading data from Client: \"" + ex.getMessage() + "\"");
+            }
+            return new short[0];
+        }
+        
+        private float[] readFloatArray() {
+            try {
+                int length = dis.readInt();
+                float[] f = new float[length];
+                for (int i = 0; i < length; i++) {
+                    f[i] = dis.readFloat();
+                }
+                return f;
+            } catch (IOException ex) {
+                System.err.println("Error reading data from Client: \"" + ex.getMessage() + "\"");
+            }
+            return new float[0];
+        }
 
         /*
          * 1.1
          */
         private void sendCommand(String command) {
             try {
-                dos.writeByte(9);
+                dos.writeByte(30);
                 dos.writeUTF(command);
                 dos.flush();
             } catch (IOException ex) {

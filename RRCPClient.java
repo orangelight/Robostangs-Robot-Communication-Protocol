@@ -9,7 +9,7 @@ import java.util.ArrayList;
 
 /**
  * @author Alex Robostangs, Team 0548
- * @version 1.1.1
+ * @version 1.1
  */
 public class RRCPClient {
 
@@ -33,7 +33,23 @@ public class RRCPClient {
      */
     private static enum PacketTypes {
 
-        Command((byte) 8), Byte((byte) 1), Integer((byte) 2), Boolean((byte) 3), Double((byte) 4), String((byte) 5), DoubleArray((byte) 6), ByteArray((byte) 7), HeartBeat((byte) 21), ClientCommand((byte) 9);
+        Command((byte) 8), 
+        Byte((byte) 1), 
+        Integer((byte) 2), 
+        Boolean((byte) 3), 
+        Double((byte) 4), 
+        String((byte) 5), 
+        DoubleArray((byte) 6), 
+        ByteArray((byte) 7), 
+        HeartBeat((byte) 21), 
+        ClientCommand((byte) 30), 
+        Long((byte) 9), 
+        Short((byte) 10), 
+        Float((byte) 11),
+        IntegerArray((byte) 12),
+        LongArray((byte) 13),
+        ShortArray((byte) 14),
+        FloatArray((byte) 15);
         private byte id;
 
         private PacketTypes(byte b) {
@@ -256,47 +272,106 @@ public class RRCPClient {
         return address;
     }
     
+        
     /*
      * 1.1.1
      */
+    private byte sendCommandWithLong(String command, long l) {
+        byte address = -2;
+        if (isConnected()) {
+            try {
+                address = addCurrentAdress();
+                dos.write(PacketTypes.Long.getID());
+                dos.write(address);
+                dos.writeUTF(command);
+                dos.writeLong(l);
+                dos.flush();
+                return address;
+            } catch (IOException ex) {
+                System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
+            }
+        } else {
+            System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
+        }
+        return address;
+    }
+    
+    private byte sendCommandWithShort(String command, short s) {
+        byte address = -2;
+        if (isConnected()) {
+            try {
+                address = addCurrentAdress();
+                dos.write(PacketTypes.Short.getID());
+                dos.write(address);
+                dos.writeUTF(command);
+                dos.writeShort(s);
+                dos.flush();
+                return address;
+            } catch (IOException ex) {
+                System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
+            }
+        } else {
+            System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
+        }
+        return address;
+    }
+    
+    private byte sendCommandWithFloat(String command, float f) {
+        byte address = -2;
+        if (isConnected()) {
+            try {
+                address = addCurrentAdress();
+                dos.write(PacketTypes.Float.getID());
+                dos.write(address);
+                dos.writeUTF(command);
+                dos.writeFloat(f);
+                dos.flush();
+                return address;
+            } catch (IOException ex) {
+                System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
+            }
+        } else {
+            System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
+        }
+        return address;
+    }
+
     public byte sendCommandWithNumber(String command, Number n) {
         if (n instanceof Integer) {
             return this.sendCommandWithInt(command, n.intValue());
         } else if (n instanceof Double) {
             return this.sendCommandWithDouble(command, n.doubleValue());
         } else if (n instanceof Short) {
-            
+            return this.sendCommandWithShort(command, n.shortValue());
         } else if (n instanceof Byte) {
             return this.sendCommandWithByte(command, n.byteValue());
         } else if (n instanceof Long) {
-            
+            return this.sendCommandWithLong(command, n.longValue());
         } else if (n instanceof Float) {
-        
+            return this.sendCommandWithFloat(command, n.floatValue());
         } else {
             System.err.println("We don't support that number");
             return -1;
         }
-        return -1;
     }
     
     public byte sendCommandWithNumberArray(String command, Object array) {
         if (array instanceof Integer[]) {
-            
+            return this.sendCommandWithIntegerArray(command, (int[])array);
         } else if (array instanceof double[]) {
             return this.sendCommandWithDoubleArray(command, (double[])array);
         } else if (array instanceof Short[]) {
-            
+            return this.sendCommandWithShortArray(command, (short[])array);
         } else if (array instanceof byte[]) {
             return this.sendCommandWithByteArray(command, (byte[])array);
         } else if (array instanceof Long[]) {
-            
+            return this.sendCommandWithLongArray(command, (long[])array);
         } else if (array instanceof Float[]) {
-        
+            return this.sendCommandWithFloatArray(command, (float[])array);
         } else {
             System.err.println("We don't support that number array");
             return -1;
         }
-        return -1;
     }
     
     /**
@@ -401,6 +476,98 @@ public class RRCPClient {
                 dos.writeInt(b.length);
                 for (int i = 0; i < b.length; i++) {
                     dos.writeByte(b[i]);
+                }
+                dos.flush();
+                return address;
+            } catch (IOException ex) {
+                System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
+            }
+        } else {
+            System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
+        }
+        return address;
+    }
+    
+    private byte sendCommandWithIntegerArray(String command, int[] i) {
+        byte address = -2;
+        if (isConnected()) {
+            try {
+                address = addCurrentAdress();
+                dos.write(PacketTypes.IntegerArray.getID());
+                dos.write(address);
+                dos.writeUTF(command);
+                dos.writeInt(i.length);
+                for (int x = 0; x < i.length; x++) {
+                    dos.writeInt(i[x]);
+                }
+                dos.flush();
+                return address;
+            } catch (IOException ex) {
+                System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
+            }
+        } else {
+            System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
+        }
+        return address;
+    }
+    
+    private byte sendCommandWithLongArray(String command, long[] l) {
+        byte address = -2;
+        if (isConnected()) {
+            try {
+                address = addCurrentAdress();
+                dos.write(PacketTypes.LongArray.getID());
+                dos.write(address);
+                dos.writeUTF(command);
+                dos.writeInt(l.length);
+                for (int x = 0; x < l.length; x++) {
+                    dos.writeLong(l[x]);
+                }
+                dos.flush();
+                return address;
+            } catch (IOException ex) {
+                System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
+            }
+        } else {
+            System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
+        }
+        return address;
+    }
+    
+    private byte sendCommandWithShortArray(String command, short[] s) {
+        byte address = -2;
+        if (isConnected()) {
+            try {
+                address = addCurrentAdress();
+                dos.write(PacketTypes.ShortArray.getID());
+                dos.write(address);
+                dos.writeUTF(command);
+                dos.writeInt(s.length);
+                for (int x = 0; x < s.length; x++) {
+                    dos.writeShort(s[x]);
+                }
+                dos.flush();
+                return address;
+            } catch (IOException ex) {
+                System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
+            }
+        } else {
+            System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
+        }
+        return address;
+    }
+    
+    private byte sendCommandWithFloatArray(String command, float[] f) {
+        byte address = -2;
+        if (isConnected()) {
+            try {
+                address = addCurrentAdress();
+                dos.write(PacketTypes.FloatArray.getID());
+                dos.write(address);
+                dos.writeUTF(command);
+                dos.writeInt(f.length);
+                for (int x = 0; x < f.length; x++) {
+                    dos.writeFloat(f[x]);
                 }
                 dos.flush();
                 return address;

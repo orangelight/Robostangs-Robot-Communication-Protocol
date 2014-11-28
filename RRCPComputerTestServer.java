@@ -1,4 +1,3 @@
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
@@ -130,6 +129,7 @@ public class RRCPComputerTestServer {
             }
         }
 
+        @Override
         public void run() {
             protocol();
             this.close();
@@ -313,6 +313,17 @@ public class RRCPComputerTestServer {
                 System.err.println("Error sending command to Client: \"" + ex.getMessage() + "\"");
             }
         }
+        
+        private void sendCommandWithDouble(String command, double d) {
+            try {
+                dos.writeByte(31);
+                dos.writeUTF(command);
+                dos.writeDouble(d);
+                dos.flush();
+            } catch (IOException ex) {
+                System.err.println("Error sending command to Client: \"" + ex.getMessage() + "\"");
+            }
+        }
     }
 
     protected static void addCommand(RRCPCommand rrcpcommand) {
@@ -347,6 +358,12 @@ public class RRCPComputerTestServer {
     public static void sendCommand(String command) {
         for (RRCPConnectionHandler rrcpCon : connectionList) {
             rrcpCon.sendCommand(command);
+        }
+    }
+    
+    public static void sendCommandWithDouble(String command, double d) {
+        for (RRCPConnectionHandler rrcpCon : connectionList) {
+            rrcpCon.sendCommandWithDouble(command, d);
         }
     }
 

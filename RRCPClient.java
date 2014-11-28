@@ -42,7 +42,8 @@ public class RRCPClient {
         DoubleArray((byte) 6), 
         ByteArray((byte) 7), 
         HeartBeat((byte) 21), 
-        ClientCommand((byte) 30), 
+        ClientCommand((byte) 30),
+        ClientCommandDouble((byte) 31),
         Long((byte) 9), 
         Short((byte) 10), 
         Float((byte) 11),
@@ -909,7 +910,9 @@ public class RRCPClient {
                 data = readByteArray();
                 packetHandler.addPacketToQueue(this);
             } else if (id == PacketTypes.ClientCommand.getID()) {
-                executeCommand(readString());
+                executeCommand(readString(), null);
+            } else if (id == PacketTypes.ClientCommandDouble.getID()) {
+                executeCommand(readString(), readDouble());
             } else if (id == 100) { //Error packet
             } else {
                 data = null;
@@ -1000,13 +1003,13 @@ public class RRCPClient {
      */
     private ArrayList<RRCPClientCommand> commands = new ArrayList<>();
 
-    private void executeCommand(final String key) {
+    private void executeCommand(final String key, final Object data) {
         new Thread(new Runnable() {
             @Override
             public void run() {
                 for (RRCPClientCommand command : commands) {
                     if (command.getKey().equals(key)) {
-                        command.execute();
+                        command.execute(data);
                         return;
                     }
                 }

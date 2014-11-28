@@ -14,5 +14,5 @@ public abstract class RRCPClientCommand {
         return key;
     }
     
-    public abstract void execute();
+    public abstract void execute(Object data);
 }

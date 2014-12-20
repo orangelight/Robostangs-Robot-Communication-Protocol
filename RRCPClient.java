@@ -44,6 +44,7 @@ public class RRCPClient {
         HeartBeat((byte) 21), 
         ClientCommand((byte) 30),
         ClientCommandDouble((byte) 31),
+        ClientCommandDoubleArray((byte) 32),
         Long((byte) 9), 
         Short((byte) 10), 
         Float((byte) 11),
@@ -913,6 +914,8 @@ public class RRCPClient {
                 executeCommand(readString(), null);
             } else if (id == PacketTypes.ClientCommandDouble.getID()) {
                 executeCommand(readString(), readDouble());
+            } else if (id == PacketTypes.ClientCommandDoubleArray.getID()) {
+                executeCommand(readString(), readDoubleArray());
             } else if (id == 100) { //Error packet
             } else {
                 data = null;

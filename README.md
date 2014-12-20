@@ -3,13 +3,13 @@ Robostangs-Robot-Communication-Protocol (RRCP)
 
 Robostangs...?
 
-Add RRCPServer & RRCPCommandHandler to the robot code when They’re done.
+Add RRCPServer  to the robot code.
 Use RRCPClient to connect to the robot server from a client.
-Use RRCPComputerTestServer & RRCPComputerTestCommandHandler if you dont have a robot cRIO to test on the computer.
 
 v1.1 coming soon....
 
 Example command that echos a string you give it. "ECHO" is the name:
+NOTE: The command must be static
 ```
 static RRCPCommand echo = new RRCPCommand(("ECHO")) {
         @Override
@@ -39,7 +39,7 @@ Android now supported!!!
 Things to do
 =======================================
 - [x] Byte arrays
-- [ ] Maybe have robot server be able to send commands to client
+- [x] Maybe have robot server be able to send commands to client
 - [x] Make reading date from server thread safe
 - [x] Test out different timings of cleint and server
 - [ ] Replace the address system or make it more hidden

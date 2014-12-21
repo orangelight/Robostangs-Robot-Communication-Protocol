@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.LinkedList;
 
 /**
  *
@@ -36,7 +37,7 @@ public class RRCPServer {
 
     private RRCPServer() {
         commandlist = new ArrayList<>();
-        connectionList = new ArrayList<>();
+        connectionList = new LinkedList<>();
         clientListener = new RRCPConnectionListener();
     }
 
@@ -88,13 +89,13 @@ public class RRCPServer {
         public void run() {
             try {
                 server = new ServerSocket(port);
+                System.out.println("RRCP Server Started!!!");
                 while (listening) {
                     Socket s = server.accept();
                     System.out.println("Client Connected");
-                    RRCPConnectionHandler ch = new RRCPConnectionHandler(s, getOpenIndex());
-                    Thread tch = new Thread(ch);
-                    tch.start();
-                    connectionList.add(getOpenIndex(), ch);
+                    RRCPConnectionHandler ch = new RRCPConnectionHandler(s);
+                    new Thread(ch).start();
+                    connectionList.add(ch);
                 }
             } catch (IOException ex) {
                 System.err.println("Error making client socket: \"" + ex.getMessage() + "\"");
@@ -117,11 +118,9 @@ public class RRCPServer {
         private DataInputStream dis;
         private DataOutputStream dos;
         private long lastHeartBeat; //Last heartbeat in system time
-        int connectionListIndex;
 
-        public RRCPConnectionHandler(Socket s, int i) {
+        public RRCPConnectionHandler(Socket s) {
             this.s = s;
-            this.connectionListIndex = i;
             try {
                 dis = new DataInputStream(new BufferedInputStream(s.getInputStream()));
                 dos = new DataOutputStream(new BufferedOutputStream(this.s.getOutputStream()));
@@ -205,7 +204,7 @@ public class RRCPServer {
             } catch (IOException ex) {
                 System.err.println("Error reading data from client: \"" + ex.getMessage() + "\"");
             }
-            connectionList.remove(connectionListIndex);
+            connectionList.remove(this);
             RRCPServer.onSocketClose();
         }
 
@@ -368,7 +367,7 @@ public class RRCPServer {
     /*
      * 1.1
      */
-    private static ArrayList<RRCPConnectionHandler> connectionList;
+    private static LinkedList<RRCPConnectionHandler> connectionList;
 
     public static void sendCommand(String command) {
         for (RRCPConnectionHandler rrcpCon : connectionList) {

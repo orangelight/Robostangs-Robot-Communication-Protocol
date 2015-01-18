@@ -17,7 +17,7 @@ public class RRCPClient {
     private DataInputStream dis; //InputStream to get data from server
     private DataOutputStream dos; //OutputStream to send data to server
     private String host; //The IP of server
-    private int port; //Port of server. sould be 1180 if use in comp.
+    private int port; //Port of server. sould be 5800-5810 if use in comp.
     private int timeout; //Timeout for getting data from server. timeout in ms equals timeout*TIMEOUT_NUM
     private boolean connected = false; //true if conncted to server false if not connected
     private boolean connecting = false; //true of client is on proccese of connecting to server
@@ -71,7 +71,7 @@ public class RRCPClient {
      * @param timeout timeout in milliseconds
      */
     public RRCPClient(String host, int timeout) {
-        this(host, timeout, 548);
+        this(host, timeout, 5801);
     }
 
     /**
@@ -81,7 +81,7 @@ public class RRCPClient {
      * @param timeout Set the timeout in milliseconds
      */
     public RRCPClient(int timeout) {
-        this("10.5.48.2", timeout, 548);
+        this("roboRIO-548.local", timeout, 5801);
     }
 
     /**

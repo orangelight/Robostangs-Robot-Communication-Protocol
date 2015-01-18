@@ -14,7 +14,7 @@ import java.util.LinkedList;
  * @author Alex
  */
 public class RRCPServer {
-    private static int port = 548; //Port server is on. Should be 1180 for comp.
+    private static int port = 5800; //Port server is on. Should be 1180 for comp.
     private static int timeout = 750; //Timeout for clients heartbeats
     private static RRCPServer instance; //Instance of server
     private static ServerSocket server; //Socket that listens for incoming connections
@@ -44,7 +44,7 @@ public class RRCPServer {
     /**
      * Starts server for listening for incoming client connections
      *
-     * @param port What port the server is ran on. Use 1180 for competitions
+     * @param port What port the server is ran on. Use 5800 for competitions
      * @param timeout Timeout for client heartbeat in milliseconds. Don't use
      * number less then 1000
      */
@@ -56,7 +56,7 @@ public class RRCPServer {
 
     /**
      * Starts server for listening for incoming clients connections Uses default
-     * port of 548. Use 1180 in competitions Uses default timeout of 2000ms
+     * port of 548. Use 5800 in competitions Uses default timeout of 2000ms
      */
     public static void startServer() {
         clientListener.startListener();

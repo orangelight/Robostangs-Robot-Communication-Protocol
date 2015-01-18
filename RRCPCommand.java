@@ -12,8 +12,8 @@ public abstract class RRCPCommand {
     DataOutputStream dos;
     public RRCPCommand(String n) {
         this.name = n;
-        RRCPComputerTestServer.getInstance();
-        RRCPComputerTestServer.addCommand(this);
+        RRCPServer.getInstance();
+        RRCPServer.addCommand(this);
     }
     protected synchronized void serverExecute(DataOutputStream dos, Object data, byte address) {
         currentAddress = address;

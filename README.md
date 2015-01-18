@@ -28,11 +28,11 @@ rrcpc.readStringPacket(rrcpc.sendCommandWithString("ECHO", "Test String"));
 
 To get a double in the execute method use: 
 ```
-double d = ((Double)data).doubleValue();
+double d = (double)data
 ```
 ^This should get much simpler when they update Java versions
 
-Set a RRCPCommand name to SOCKETCLOSED and it will be called when a client timesout or disconnects.
+Set a RRCPCommand name to SOCKETCLOSED and it will be called when a client timeout or disconnects.
 Android now supported!!!
 
 

@@ -11,7 +11,7 @@ import java.util.ArrayList;
  * @author Alex Robostangs, Team 0548
  * @version 1.1
  */
-public class RRCPClient {
+class RRCPClient {
 
     private Socket socket; //Socket used to connect to server
     private DataInputStream dis; //InputStream to get data from server
@@ -33,20 +33,20 @@ public class RRCPClient {
      */
     private static enum PacketTypes {
 
-        Command((byte) 8), 
-        Byte((byte) 1), 
-        Integer((byte) 2), 
-        Boolean((byte) 3), 
-        Double((byte) 4), 
-        String((byte) 5), 
-        DoubleArray((byte) 6), 
-        ByteArray((byte) 7), 
-        HeartBeat((byte) 21), 
+        Command((byte) 8),
+        Byte((byte) 1),
+        Integer((byte) 2),
+        Boolean((byte) 3),
+        Double((byte) 4),
+        String((byte) 5),
+        DoubleArray((byte) 6),
+        ByteArray((byte) 7),
+        HeartBeat((byte) 21),
         ClientCommand((byte) 30),
         ClientCommandDouble((byte) 31),
         ClientCommandDoubleArray((byte) 32),
-        Long((byte) 9), 
-        Short((byte) 10), 
+        Long((byte) 9),
+        Short((byte) 10),
         Float((byte) 11),
         IntegerArray((byte) 12),
         LongArray((byte) 13),
@@ -102,7 +102,7 @@ public class RRCPClient {
      * Tries to connect to robot server with server host and port, also starts
      * client
      */
-    public void connect() {
+    public synchronized void connect() {
         if (isConnected()) {
             System.err.println("Client is connected already");
         } else if (isConnecting()) {
@@ -124,8 +124,8 @@ public class RRCPClient {
                     } catch (IOException ex) {
                         System.err.println("Error Connecting to Robot Server: \"" + ex.getMessage() + "\"");
                         connecting = false;
-                        close();
-                    } 
+
+                    }
                 }
             }).start();
         }
@@ -273,8 +273,8 @@ public class RRCPClient {
         }
         return address;
     }
-    
-        
+
+
     /*
      * 1.1.1
      */
@@ -297,7 +297,7 @@ public class RRCPClient {
         }
         return address;
     }
-    
+
     private byte sendCommandWithShort(String command, short s) {
         byte address = -2;
         if (isConnected()) {
@@ -317,7 +317,7 @@ public class RRCPClient {
         }
         return address;
     }
-    
+
     private byte sendCommandWithFloat(String command, float f) {
         byte address = -2;
         if (isConnected()) {
@@ -356,7 +356,7 @@ public class RRCPClient {
             return -1;
         }
     }
-    
+
     public byte sendCommandWithNumberArray(String command, Object array) {
         if (array instanceof Integer[]) {
             return this.sendCommandWithIntegerArray(command, (int[])array);
@@ -375,7 +375,7 @@ public class RRCPClient {
             return -1;
         }
     }
-    
+
     /**
      * Sends command with boolean data to server if connected
      *
@@ -489,7 +489,7 @@ public class RRCPClient {
         }
         return address;
     }
-    
+
     private byte sendCommandWithIntegerArray(String command, int[] i) {
         byte address = -2;
         if (isConnected()) {
@@ -512,7 +512,7 @@ public class RRCPClient {
         }
         return address;
     }
-    
+
     private byte sendCommandWithLongArray(String command, long[] l) {
         byte address = -2;
         if (isConnected()) {
@@ -535,7 +535,7 @@ public class RRCPClient {
         }
         return address;
     }
-    
+
     private byte sendCommandWithShortArray(String command, short[] s) {
         byte address = -2;
         if (isConnected()) {
@@ -558,7 +558,7 @@ public class RRCPClient {
         }
         return address;
     }
-    
+
     private byte sendCommandWithFloatArray(String command, float[] f) {
         byte address = -2;
         if (isConnected()) {
@@ -589,19 +589,20 @@ public class RRCPClient {
                 dos.flush();
             } catch (IOException ex) {
                 System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
-                this.close();
             }
         } else {
             System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
         }
     }
 
-    private void sendHeartBeat() {
+    private boolean sendHeartBeat() {
         this.sendHeatBeatCommand();
         if (packetHandler.getHeartBeat().getID() == 21) { //Checks if packet has correct id
             this.connected = true;
+            return true;
         } else {
-            this.close();
+            return false;
+
         }
     }
 
@@ -609,12 +610,17 @@ public class RRCPClient {
 
         @Override
         public void run() {
-            while (isConnected()) {
-                sendHeartBeat(); //Sends heartbeat command every second
-                try {
-                    Thread.sleep(500);
-                } catch (InterruptedException ex) {
-                    System.err.println("Error sleeping: \"" + ex.getMessage() + "\"");
+            while (isConnected() && !Thread.currentThread().isInterrupted() && !isConnecting()) {
+                if(sendHeartBeat()) { //Sends heartbeat command every second
+                    try {
+                        Thread.sleep(250);
+                    } catch (InterruptedException ex) {
+                        System.err.println("Error sleeping: \"" + ex.getMessage() + "\"");
+                    }
+                } else {
+                    Thread.currentThread().interrupt();
+                    close();
+                    break;
                 }
             }
         }
@@ -768,17 +774,23 @@ public class RRCPClient {
         try {
             this.connected = false;
             if (socket != null) {
-                this.dos.close();
-                this.dis.close();
+                this.heartBeatThread.interrupt();
                 this.socket.close();
-            } if(autoReconnect) {
-                this.connect();
             }
         } catch (IOException ex) {
             System.err.println("Error closing socket: \"" + ex.getMessage() + "\"");
+        } finally {
+            if(autoReconnect) {
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+
+                }
+                this.connect();
+            }
         }
     }
-    
+
     /**
      * Closes client socket from server, which makes isConnected false.
      */
@@ -807,7 +819,7 @@ public class RRCPClient {
             while (isConnected()) {
                 try {
                     while (dis.available() > 0) { //Reads packet when it comes in from input stream
-                        new Packet(readByte()); //Makes new packet of id read from byte          
+                        new Packet(readByte()); //Makes new packet of id read from byte
                     }
                 } catch (IOException ex) {
                     System.err.println("Error reading packet ID from robot server: \"" + ex.getMessage() + "\"");

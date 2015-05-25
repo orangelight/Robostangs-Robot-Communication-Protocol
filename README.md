@@ -3,10 +3,12 @@ Robostangs-Robot-Communication-Protocol (RRCP)
 
 Robostangs...?
 
+***Everthin is buggy and outdated major update comming soon***
+
 Add RRCPServer  to the robot code.
 Use RRCPClient to connect to the robot server from a client.
 
-v1.1 coming soon....
+v1.5 coming soon....
 
 Example command that echos a string you give it. "ECHO" is the name:
 NOTE: The command must be static
@@ -45,3 +47,6 @@ Things to do
 - [ ] Replace the address system or make it more hidden
 - [ ] Maybe make integrated with network tables
 - [ ] Make sure everything works
+- [ ] Boolean arrays
+- [ ] C# client
+- [ ] C++ server and client

@@ -3,7 +3,7 @@ Robostangs-Robot-Communication-Protocol (RRCP)
 
 Robostangs...?
 
-***Everthin is buggy and outdated major update comming soon***
+***Everthing is buggy and outdated major update comming soon***
 
 Add RRCPServer  to the robot code.
 Use RRCPClient to connect to the robot server from a client.

@@ -32,21 +32,21 @@ public class RRCPClient {
 
     private static enum PacketTypes {
 
-        Command((byte) 8),
         Byte((byte) 1),
         Integer((byte) 2),
-        Boolean((byte) 3),
-        Double((byte) 4),
-        String((byte) 5),
-        DoubleArray((byte) 6),
-        ByteArray((byte) 7),
+        Double((byte) 3),
+        Long((byte) 4),
+        Short((byte) 5),
+        Float((byte) 6),
+        Command((byte) 7),
+        String((byte) 8),
+        Boolean((byte) 9),
         HeartBeat((byte) 21),
         ClientCommand((byte) 30),
         ClientCommandDouble((byte) 31),
         ClientCommandDoubleArray((byte) 32),
-        Long((byte) 9),
-        Short((byte) 10),
-        Float((byte) 11),
+        DoubleArray((byte) 10),
+        ByteArray((byte) 11),
         IntegerArray((byte) 12),
         LongArray((byte) 13),
         ShortArray((byte) 14),
@@ -83,8 +83,8 @@ public class RRCPClient {
                 dataOutput = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
                 packetHandler = new PacketHandler();
                 heartBeatThread = new Thread(new HeartBeatThread());
-                heartBeatThread.start();
                 connected = true;
+                heartBeatThread.start();
             } catch (IOException ex) {
                 Logger.getLogger(RRCPClient.class.getName()).log(Level.SEVERE, null, ex);
             } finally {
@@ -298,20 +298,252 @@ public class RRCPClient {
     }
 
     private class PacketHandler implements Runnable {
-
-        @Override
+        
+        private Packet[] packetQueue;
+        private Packet beatQueue;
+        private Thread mainThread;
+        
+        public PacketHandler() {
+            this.packetQueue = new Packet[101]; //Makes packet queue
+            this.beatQueue = null;
+            this.mainThread = new Thread(this);
+            this.mainThread.start();
+        }
+        
         public void run() {
+            while (isConnected()) {
+                try {
+                    while (dataInput.available() > 0) { //Reads packet when it comes in from input stream
+                        new Packet((byte)readNumber(PacketTypes.Byte.getID())); //Makes new packet of id read from byte
+                    }
+                } catch (IOException ex) {
+                    
+                }
+                try {
+                    Thread.sleep(TIMEOUT_NUM);
+                } catch (InterruptedException ex) {
+                    
+                }
+            }
+        }
+        
+         private Packet getHeartBeat() {
+            int i = 0;
+            while (beatQueue == null) {
+                if (i > packetTimeOut) {
+                    System.err.println("SERVER DID NOT RESPOND!!!");
+                    return new Packet((byte) 100); //Returns error packet
+                }
+                try {
+                    Thread.sleep(TIMEOUT_NUM);
+                } catch (InterruptedException ex) {
+                    
+                }
+                ++i;
+            }
+            setHeartBeatDelay(i);
+            Packet p = beatQueue;
+            resetBeatQueue();
+            return p;
+        }
 
+        private Packet getPacket(byte address) {
+            int i = 0;
+            while (packetQueue[address] == null) {
+                ++i;
+                if (i > packetTimeOut + 10) {
+                    System.err.println("Could not find packet! Packet lost!");
+                    return null;
+                }
+                try {
+                    Thread.sleep(TIMEOUT_NUM);
+                } catch (InterruptedException ex) {
+
+                }
+            }
+            Packet p = packetQueue[address];
+            packetQueue[address] = null;
+            return p;
+        }
+
+        public void addPacketToBeatQueue(Packet p) {
+            beatQueue = p;
+        }
+
+        public void addPacketToQueue(Packet p) {
+            packetQueue[p.address] = p;
+        }
+
+        public void resetBeatQueue() {
+            beatQueue = null;
         }
 
     }
+    
+    public Object readNumberPacket(byte address) {
+        if(isConnected()) {
+            Packet isNull = packetHandler.getPacket(address);
+            if(isNull == null) {
+                return null;
+            }
+            return isNull.getData();
+        }
+        return null;
+    }
+    
+    private class Packet {
+
+        private byte id;
+        public Object data;
+        private byte address;
+
+        public Packet(byte id) {
+            this.id = id;
+            if (id == PacketTypes.HeartBeat.getID()) { //Determains what type of packet it is from id
+                packetHandler.addPacketToBeatQueue(this);
+            } else if (id <= PacketTypes.Float.getID()) { //Numbers
+                address = (byte)readNumber(PacketTypes.Byte.getID());
+                data = readNumber(id);
+                packetHandler.addPacketToQueue(this);
+            } else if (id == PacketTypes.Boolean.getID()) {
+                address = (byte)readNumber(PacketTypes.Byte.getID());
+                data = readBoolean();
+                packetHandler.addPacketToQueue(this);
+            } else if (id == PacketTypes.String.getID()) {
+                address = (byte)readNumber(PacketTypes.Byte.getID());
+                data = readString();
+                packetHandler.addPacketToQueue(this);
+            } else if (id >= PacketTypes.DoubleArray.getID() && id <= PacketTypes.FloatArray.getID()) {
+                address = (byte)readNumber(PacketTypes.Byte.getID());
+                data = readNumberArray(id);
+                packetHandler.addPacketToQueue(this);
+            } else if (id == 100) { //Error packet
+            } else {
+                data = null;
+                System.err.println("Packet not reconized!!!"); //Unknow packet id
+            }
+        }
+
+        public Object getData() {
+            return data;
+        }
+
+        public byte getID() {
+            return id;
+        }
+    }
+    
+    private Number readNumber(byte id) {
+        try {
+            if (id == PacketTypes.Byte.getID()|| id == PacketTypes.ByteArray.getID()) return dataInput.readByte();
+            else if (id == PacketTypes.Integer.getID() || id == PacketTypes.IntegerArray.getID()) return dataInput.readInt();
+            else if (id == PacketTypes.Double.getID() || id == PacketTypes.DoubleArray.getID()) return dataInput.readDouble();
+            else if (id == PacketTypes.Long.getID() || id == PacketTypes.LongArray.getID()) return dataInput.readLong();
+            else if (id == PacketTypes.Short.getID() || id == PacketTypes.ShortArray.getID()) return dataInput.readShort();
+            else if (id == PacketTypes.Float.getID() || id == PacketTypes.FloatArray.getID()) return dataInput.readFloat();
+            else return -1;
+        } catch (IOException ex) {
+            
+        }
+        return -1;
+    }
+    
+    private Object readNumberArray(byte id) {
+        int length = (int)readNumber(PacketTypes.Integer.getID());
+        Number[] n = new Number[length];
+        for (int i = 0; i < length; i++) {
+            n[i] = readNumber(id);
+        }
+        return n;
+    }
+    
+    private boolean readBoolean() {
+        try {
+            return dataInput.readBoolean();
+        } catch (IOException ex) {
+            
+        }
+        return false; 
+    }
+    
+    private String readString() {
+        try {
+            return dataInput.readUTF();
+        } catch (IOException ex) {
+            
+        }
+        return null;
+    }
+
+    private void close() {
+        try {
+            this.connected = false;
+            if (socket != null) {
+                this.heartBeatThread.interrupt();
+                this.socket.close();
+            }
+        } catch (IOException ex) {
+            
+        } finally {
+            if(autoReconnect) {
+                this.connect();
+            }
+        }
+    }
+    
+    public void disconnect() {
+        if(autoReconnect) {
+            this.autoReconnect = false;
+            this.close();
+            this.autoReconnect = true;
+        } else this.close();
+    }
+    //Heartbeat stuff
 
     private class HeartBeatThread implements Runnable {
 
         @Override
         public void run() {
-
+            while (isConnected() && !Thread.currentThread().isInterrupted()) {
+                if (sendHeartBeat()) {
+                    Thread.sleep(250);
+                } else {
+                    Thread.currentThread().interrupt();
+                    close();
+                    break;
+                }
+            }
         }
 
+        private boolean sendHeartBeat() {
+            this.sendHeartBeatCommand();
+            if (packetHandler.getHeartBeat().getID() == 21) {
+                connected = true;
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        private void sendHeartBeatCommand() {
+            if (isConnected()) {
+                try {
+                    dataOutput.write(PacketTypes.HeartBeat.getID());
+                    dataOutput.flush();
+                } catch (IOException ex) {
+
+                }
+            } else {
+
+            }
+        }
+    }
+
+    private void setHeartBeatDelay(int i) {
+        this.heartBeatDelay = i;
+    }
+
+    public int getDelay() {
+        return TIMEOUT_NUM * this.heartBeatDelay;
     }
 }

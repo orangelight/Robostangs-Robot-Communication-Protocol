@@ -5,9 +5,6 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
-import java.util.concurrent.locks.Lock;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /**
  *
@@ -72,9 +69,9 @@ public class RRCPClient {
 
     public synchronized void connect() {
         if (isConnected()) {
-
+            System.err.println("Error ID: 3 Already connected");
         } else if (isConnecting()) {
-
+            System.err.println("Error ID: 4 Already connecting");
         } else {
             try {
                 connecting = true;
@@ -86,7 +83,7 @@ public class RRCPClient {
                 connected = true;
                 heartBeatThread.start();
             } catch (IOException ex) {
-                Logger.getLogger(RRCPClient.class.getName()).log(Level.SEVERE, null, ex);
+                System.err.println("Error ID: 0 "+ex.getMessage());
             } finally {
                 connecting = false;
             }
@@ -124,10 +121,10 @@ public class RRCPClient {
                 dataOutput.flush();
                 return address;
             } catch (IOException ex) {
-
+                System.err.println("Error ID: 1 "+ex.getMessage());
             }
         } else {
-
+            System.err.println("Error ID: 2 Not connected");
         }
         return -2;
     }
@@ -178,13 +175,15 @@ public class RRCPClient {
                     dataOutput.flush();
                     return address;
                 } else {
-                    System.err.println("Really... I don't what to support that number type...");
+                    System.err.println("Error ID: 5 Really... I don't what to support that number type...");
                     return -2;
                 }
             } catch (IOException ex) {
+                System.err.println("Error ID: 6 " + ex.getMessage());
                 return -2;
             }
         } else {
+            System.err.println("Error ID: 2 Not connected");
             return -2;
         }
     }
@@ -252,9 +251,11 @@ public class RRCPClient {
                     return -2;
                 }
             } catch (IOException ex) {
+                System.err.println("Error ID: 7 " + ex.getMessage());
                 return -2;
             }
         } else {
+            System.err.println("Error ID: 2 Not connected");
             return -2;
         }
     }
@@ -270,10 +271,10 @@ public class RRCPClient {
                 dataOutput.flush();
                 return address;
             } catch (IOException ex) {
-
+                System.err.println("Error ID: 8 " + ex.getMessage());
             }
         } else {
-
+            System.err.println("Error ID: 2 Not connected");
         }
         return -2;
     }
@@ -289,10 +290,10 @@ public class RRCPClient {
                 dataOutput.flush();
                 return address;
             } catch (IOException ex) {
-
+                System.err.println("Error ID: 9 " + ex.getMessage());
             }
         } else {
-
+            System.err.println("Error ID: 2 Not connected");
         }
         return -2;
     }
@@ -317,12 +318,12 @@ public class RRCPClient {
                         new Packet((byte)readNumber(PacketTypes.Byte.getID())); //Makes new packet of id read from byte
                     }
                 } catch (IOException ex) {
-                    
+                    System.err.println("Error ID: 10 " + ex.getMessage());
                 }
                 try {
                     Thread.sleep(TIMEOUT_NUM);
                 } catch (InterruptedException ex) {
-                    
+                    System.err.println("Error ID: 11 sleeping");
                 }
             }
         }
@@ -337,7 +338,7 @@ public class RRCPClient {
                 try {
                     Thread.sleep(TIMEOUT_NUM);
                 } catch (InterruptedException ex) {
-                    
+                    System.err.println("Error ID: 11 sleeping");
                 }
                 ++i;
             }
@@ -358,7 +359,7 @@ public class RRCPClient {
                 try {
                     Thread.sleep(TIMEOUT_NUM);
                 } catch (InterruptedException ex) {
-
+                    System.err.println("Error ID: 11 sleeping");
                 }
             }
             Packet p = packetQueue[address];
@@ -380,7 +381,7 @@ public class RRCPClient {
 
     }
     
-    public Object readNumberPacket(byte address) {
+    public Object readPacket(byte address) {
         if(isConnected()) {
             Packet isNull = packetHandler.getPacket(address);
             if(isNull == null) {
@@ -420,7 +421,7 @@ public class RRCPClient {
             } else if (id == 100) { //Error packet
             } else {
                 data = null;
-                System.err.println("Packet not reconized!!!"); //Unknow packet id
+                System.err.println("Error ID: 12 Packet id " + id + " not reconized!!!"); //Unknow packet id
             }
         }
 
@@ -443,7 +444,7 @@ public class RRCPClient {
             else if (id == PacketTypes.Float.getID() || id == PacketTypes.FloatArray.getID()) return dataInput.readFloat();
             else return -1;
         } catch (IOException ex) {
-            
+             System.err.println("Error ID: 13 "+ ex.getMessage());
         }
         return -1;
     }
@@ -461,7 +462,7 @@ public class RRCPClient {
         try {
             return dataInput.readBoolean();
         } catch (IOException ex) {
-            
+            System.err.println("Error ID: 14 "+ ex.getMessage());
         }
         return false; 
     }
@@ -470,7 +471,7 @@ public class RRCPClient {
         try {
             return dataInput.readUTF();
         } catch (IOException ex) {
-            
+            System.err.println("Error ID: 15 "+ ex.getMessage());
         }
         return null;
     }
@@ -483,7 +484,7 @@ public class RRCPClient {
                 this.socket.close();
             }
         } catch (IOException ex) {
-            
+            System.err.println("Error ID: 16 "+ ex.getMessage());
         } finally {
             if(autoReconnect) {
                 this.connect();
@@ -506,8 +507,13 @@ public class RRCPClient {
         public void run() {
             while (isConnected() && !Thread.currentThread().isInterrupted()) {
                 if (sendHeartBeat()) {
-                    Thread.sleep(250);
+                    try {
+                        Thread.sleep(250);
+                    } catch (InterruptedException ex) {
+                        System.err.println("Error ID: 11 sleeping");
+                    }
                 } else {
+                    System.err.println("Heart Beat Dead!");
                     Thread.currentThread().interrupt();
                     close();
                     break;
@@ -531,10 +537,10 @@ public class RRCPClient {
                     dataOutput.write(PacketTypes.HeartBeat.getID());
                     dataOutput.flush();
                 } catch (IOException ex) {
-
+                    System.err.println("Error ID: 17 "+ ex.getMessage());
                 }
             } else {
-
+                System.err.println("Error ID: 2 Not connected");
             }
         }
     }

@@ -5,54 +5,54 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
-import java.util.ArrayList;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
- * @author Alex Robostangs, Team 0548
- * @version 1.1
+ *
+ * @author Alex
  */
-class RRCPClient {
+public class RRCPClient {
 
-    private Socket socket; //Socket used to connect to server
-    private DataInputStream dis; //InputStream to get data from server
-    private DataOutputStream dos; //OutputStream to send data to server
-    private String host; //The IP of server
-    private int port; //Port of server. sould be 5800-5810 if use in comp.
-    private int timeout; //Timeout for getting data from server. timeout in ms equals timeout*TIMEOUT_NUM
-    private boolean connected = false; //true if conncted to server false if not connected
-    private boolean connecting = false; //true of client is on proccese of connecting to server
-    private Thread heartBeatThread; //Thread used to send a heartbeat to server every second
-    private PacketHandler packetHandler; //Used to read all data from server and manage it in to packets from client to read
-    private int heartBeatDelay = 0; //The time it takes for server to respond to heartbeat and for us to read it. Delay in ms = heartBeatDela*TIMEOUT_NUM
-    private byte currentAddress = -1; //Used by cleint to set address to exbounding packets
-    private final int TIMEOUT_NUM = 5; //Used to convert from timeout time to ms
+    private Socket socket;
+    private DataInputStream dataInput;
+    private DataOutputStream dataOutput;
+    private String hostIP;
+    private int hostPort;
+    private int packetTimeOut;
+    private volatile boolean connected = false;
+    private boolean connecting = false;
+    private Thread heartBeatThread;
+    private PacketHandler packetHandler;
+    private int heartBeatDelay = 0;
+    private volatile byte currentAddress = -1;
+    private final int TIMEOUT_NUM = 5;
     private boolean autoReconnect = true;
+    private Lock outputLock;
 
-    /**
-     * Stores packet id's for reading and sending packets
-     */
     private static enum PacketTypes {
 
-        Command((byte) 8),
         Byte((byte) 1),
         Integer((byte) 2),
-        Boolean((byte) 3),
-        Double((byte) 4),
-        String((byte) 5),
-        DoubleArray((byte) 6),
-        ByteArray((byte) 7),
+        Double((byte) 3),
+        Long((byte) 4),
+        Short((byte) 5),
+        Float((byte) 6),
+        Command((byte) 7),
+        String((byte) 8),
+        Boolean((byte) 9),
         HeartBeat((byte) 21),
         ClientCommand((byte) 30),
         ClientCommandDouble((byte) 31),
         ClientCommandDoubleArray((byte) 32),
-        Long((byte) 9),
-        Short((byte) 10),
-        Float((byte) 11),
+        DoubleArray((byte) 10),
+        ByteArray((byte) 11),
         IntegerArray((byte) 12),
         LongArray((byte) 13),
         ShortArray((byte) 14),
         FloatArray((byte) 15);
-        private byte id;
+
+        private final byte id;
 
         private PacketTypes(byte b) {
             this.id = b;
@@ -63,790 +63,323 @@ class RRCPClient {
         }
     }
 
-    /**
-     * Sets the robot server IP Sets port to default port (548) Port must be set
-     * to 1180 for competitions
-     *
-     * @param host Server IP
-     * @param timeout timeout in milliseconds
-     */
-    public RRCPClient(String host, int timeout) {
-        this(host, timeout, 5801);
+    public RRCPClient(String host, int port, int timeout, boolean autoRe) {
+        this.hostIP = host;
+        this.hostPort = port;
+        this.packetTimeOut = timeout / TIMEOUT_NUM;
+        this.autoReconnect = autoRe;
     }
 
-    /**
-     * Sets IP to default server IP (10.5.48.2) Sets port to default port (548)
-     * Port must be set to 1180 for competitions
-     *
-     * @param timeout Set the timeout in milliseconds
-     */
-    public RRCPClient(int timeout) {
-        this("roboRIO-548.local", timeout, 5801);
-    }
-
-    /**
-     * Sets the robot server IP and port Port must be set to 1180 for
-     * competitions
-     *
-     * @param host Server IP
-     * @param timeout Timeout in milliseconds
-     * @param port Server Port
-     */
-    public RRCPClient(String host, int timeout, int port) {
-        this.host = host;
-        this.port = port;
-        this.timeout = timeout / TIMEOUT_NUM;
-    }
-
-    /**
-     * Tries to connect to robot server with server host and port, also starts
-     * client
-     */
     public synchronized void connect() {
         if (isConnected()) {
-            System.err.println("Client is connected already");
+            System.err.println("Error ID: 3 Already connected");
         } else if (isConnecting()) {
-            System.err.println("Client is trying to connect already");
+            System.err.println("Error ID: 4 Already connecting");
         } else {
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        connecting = true;
-                        socket = new Socket(host, port);
-                        dis = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
-                        dos = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
-                        connected = true;
-                        packetHandler = new PacketHandler(); //Starts teh packet handler
-                        heartBeatThread = new Thread(new HeartBeatThread());
-                        heartBeatThread.start(); //Starts heatbeats
-                        connecting = false;
-                    } catch (IOException ex) {
-                        System.err.println("Error Connecting to Robot Server: \"" + ex.getMessage() + "\"");
-                        connecting = false;
+            try {
+                connecting = true;
+                socket = new Socket(hostIP, hostPort);
+                dataInput = new DataInputStream(new BufferedInputStream(socket.getInputStream()));
+                dataOutput = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
+                packetHandler = new PacketHandler();
+                heartBeatThread = new Thread(new HeartBeatThread());
+                outputLock = new ReentrantLock();
+                outputLock.unlock();
+                connected = true;
+                heartBeatThread.start();
+            } catch (IOException ex) {
+                System.err.println("Error ID: 0 "+ex.getMessage());
+            } finally {
+                connecting = false;
+            }
 
-                    }
-                }
-            }).start();
         }
     }
 
-    /**
-     * Tells whether client is connected to robot server
-     *
-     * @return true if connected
-     */
     public boolean isConnected() {
         return connected;
     }
 
-    /**
-     * Tells whether client is connecting to robot server
-     *
-     * @return true if connecting
-     */
     public boolean isConnecting() {
         return connecting;
     }
 
-    /**
-     * Gets the last address assigned to packet send to server The values can
-     * range from 0 to 50
-     *
-     * @return address of packet last sent
-     */
     public byte getCurrentAddress() {
         return currentAddress;
     }
 
-    private synchronized byte addCurrentAdress() {
-        if (currentAddress == 50) {
+    private synchronized byte addCurrentAddress() {
+        if (currentAddress == 100) {
             currentAddress = -1; //if last packet sent had address of 50 change currentAdress back to -1 to be changed to 0
         }
         packetHandler.packetQueue[++currentAddress] = null;
         return getCurrentAddress();
     }
 
-    /**
-     * Sends command to server if connect
-     *
-     * @param command Name of command sending to server
-     * @return The address used to read returning data from server
-     */
     public byte sendCommand(String command) {
-        byte address = -2;
+        byte address;
         if (isConnected()) {
             try {
-                address = addCurrentAdress();
-                dos.write(PacketTypes.Command.getID());
-                dos.write(address);
-                dos.writeUTF(command);
-                dos.flush();
+                outputLock.lock();
+                address = addCurrentAddress();
+                dataOutput.write(PacketTypes.Command.getID());
+                addAddressCommand(address, command);
+                dataOutput.flush();
+                outputLock.unlock();
                 return address;
             } catch (IOException ex) {
-                System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
-            }
+                System.err.println("Error ID: 1 "+ex.getMessage());
+                outputLock.unlock();
+            } 
         } else {
-            System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
+            System.err.println("Error ID: 2 Not connected");
         }
-        return address;
+        return -2;
     }
 
-    /**
-     * Sends command with byte data to server if connected
-     *
-     * @param command Name of command sending to server
-     * @param b value of byte data sent with the command
-     * @return The address used to read returning data from server
-     */
-    private byte sendCommandWithByte(String command, byte b) {
-        byte address = -2;
-        if (isConnected()) {
-            try {
-                address = addCurrentAdress();
-                dos.write(PacketTypes.Byte.getID());
-                dos.write(address);
-                dos.writeUTF(command);
-                dos.writeByte(b);
-                dos.flush();
-                return address;
-            } catch (IOException ex) {
-                System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
-            }
-        } else {
-            System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
-        }
-        return address;
-    }
-
-    /**
-     *
-     * Sends command with double data to server if connected
-     *
-     * @param command Name of command sending to server
-     * @param d value of double data sent with the command
-     * @return The address used to read returning data from server
-     */
-    private byte sendCommandWithDouble(String command, double d) {
-        byte address = -2;
-        if (isConnected()) {
-            try {
-                address = addCurrentAdress();
-                dos.write(PacketTypes.Double.getID());
-                dos.write(address);
-                dos.writeUTF(command);
-                dos.writeDouble(d);
-                dos.flush();
-                return address;
-            } catch (IOException ex) {
-                System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
-            }
-        } else {
-            System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
-        }
-        return address;
-    }
-
-    /**
-     * Sends command with int data to server if connected
-     *
-     * @param command Name of command sending to server
-     * @param i value of int data sent with command
-     * @return The address used to read returning data from server
-     */
-    private byte sendCommandWithInt(String command, int i) {
-        byte address = -2;
-        if (isConnected()) {
-            try {
-                address = addCurrentAdress();
-                dos.write(PacketTypes.Integer.getID());
-                dos.write(address);
-                dos.writeUTF(command);
-                dos.writeInt(i);
-                dos.flush();
-                return address;
-            } catch (IOException ex) {
-                System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
-            }
-        } else {
-            System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
-        }
-        return address;
-    }
-
-
-    /*
-     * 1.1.1
-     */
-    private byte sendCommandWithLong(String command, long l) {
-        byte address = -2;
-        if (isConnected()) {
-            try {
-                address = addCurrentAdress();
-                dos.write(PacketTypes.Long.getID());
-                dos.write(address);
-                dos.writeUTF(command);
-                dos.writeLong(l);
-                dos.flush();
-                return address;
-            } catch (IOException ex) {
-                System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
-            }
-        } else {
-            System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
-        }
-        return address;
-    }
-
-    private byte sendCommandWithShort(String command, short s) {
-        byte address = -2;
-        if (isConnected()) {
-            try {
-                address = addCurrentAdress();
-                dos.write(PacketTypes.Short.getID());
-                dos.write(address);
-                dos.writeUTF(command);
-                dos.writeShort(s);
-                dos.flush();
-                return address;
-            } catch (IOException ex) {
-                System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
-            }
-        } else {
-            System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
-        }
-        return address;
-    }
-
-    private byte sendCommandWithFloat(String command, float f) {
-        byte address = -2;
-        if (isConnected()) {
-            try {
-                address = addCurrentAdress();
-                dos.write(PacketTypes.Float.getID());
-                dos.write(address);
-                dos.writeUTF(command);
-                dos.writeFloat(f);
-                dos.flush();
-                return address;
-            } catch (IOException ex) {
-                System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
-            }
-        } else {
-            System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
-        }
-        return address;
+    private void addAddressCommand(byte address, String command) throws IOException {
+        dataOutput.write(address);
+        dataOutput.writeUTF(command);
     }
 
     public byte sendCommandWithNumber(String command, Number n) {
-        if (n instanceof Integer) {
-            return this.sendCommandWithInt(command, n.intValue());
-        } else if (n instanceof Double) {
-            return this.sendCommandWithDouble(command, n.doubleValue());
-        } else if (n instanceof Short) {
-            return this.sendCommandWithShort(command, n.shortValue());
-        } else if (n instanceof Byte) {
-            return this.sendCommandWithByte(command, n.byteValue());
-        } else if (n instanceof Long) {
-            return this.sendCommandWithLong(command, n.longValue());
-        } else if (n instanceof Float) {
-            return this.sendCommandWithFloat(command, n.floatValue());
+        if (isConnected()) {
+            try {
+                byte address = addCurrentAddress();
+                if (n instanceof Integer) {
+                    outputLock.lock();
+                    dataOutput.write(PacketTypes.Integer.getID());
+                    addAddressCommand(address, command);
+                    dataOutput.writeInt((int) n);
+                    dataOutput.flush();
+                    outputLock.unlock();
+                    return address;
+                } else if (n instanceof Double) {
+                    outputLock.lock();
+                    dataOutput.write(PacketTypes.Double.getID());
+                    addAddressCommand(address, command);
+                    dataOutput.writeDouble((double) n);
+                    dataOutput.flush();
+                    outputLock.unlock();
+                    return address;
+                } else if (n instanceof Short) {
+                    outputLock.lock();
+                    dataOutput.write(PacketTypes.Short.getID());
+                    addAddressCommand(address, command);
+                    dataOutput.writeDouble((short) n);
+                    dataOutput.flush();
+                    outputLock.unlock();
+                    return address;
+                } else if (n instanceof Byte) {
+                    outputLock.lock();
+                    dataOutput.write(PacketTypes.Byte.getID());
+                    addAddressCommand(address, command);
+                    dataOutput.writeDouble((byte) n);
+                    dataOutput.flush();
+                    outputLock.unlock();
+                    return address;
+                } else if (n instanceof Long) {
+                    outputLock.lock();
+                    dataOutput.write(PacketTypes.Long.getID());
+                    addAddressCommand(address, command);
+                    dataOutput.writeDouble((long) n);
+                    dataOutput.flush();
+                    outputLock.unlock();
+                    return address;
+                } else if (n instanceof Float) {
+                    outputLock.lock();
+                    dataOutput.write(PacketTypes.Float.getID());
+                    addAddressCommand(address, command);
+                    dataOutput.writeDouble((float) n);
+                    dataOutput.flush();
+                    outputLock.unlock();
+                    return address;
+                } else {
+                    System.err.println("Error ID: 5 Really... I don't what to support that number type...");
+                    return -2;
+                }
+            } catch (IOException ex) {
+                System.err.println("Error ID: 6 " + ex.getMessage());
+                return -2;
+            } finally {
+                outputLock.unlock();
+            }
         } else {
-            System.err.println("We don't support that number");
-            return -1;
+            System.err.println("Error ID: 2 Not connected");
+            return -2;
         }
     }
 
     public byte sendCommandWithNumberArray(String command, Object array) {
-        if (array instanceof Integer[]) {
-            return this.sendCommandWithIntegerArray(command, (int[])array);
-        } else if (array instanceof double[]) {
-            return this.sendCommandWithDoubleArray(command, (double[])array);
-        } else if (array instanceof Short[]) {
-            return this.sendCommandWithShortArray(command, (short[])array);
-        } else if (array instanceof byte[]) {
-            return this.sendCommandWithByteArray(command, (byte[])array);
-        } else if (array instanceof Long[]) {
-            return this.sendCommandWithLongArray(command, (long[])array);
-        } else if (array instanceof Float[]) {
-            return this.sendCommandWithFloatArray(command, (float[])array);
-        } else {
-            System.err.println("We don't support that number array");
-            return -1;
-        }
-    }
-
-    /**
-     * Sends command with boolean data to server if connected
-     *
-     * @param command Name of command sending to server
-     * @param b value of boolean data sent with command
-     * @return The address used to read returning data from server
-     */
-    public byte sendCommandWithBoolean(String command, boolean b) {
-        byte address = -2;
         if (isConnected()) {
             try {
-                address = addCurrentAdress();
-                dos.write(PacketTypes.Boolean.getID());
-                dos.write(address);
-                dos.writeUTF(command);
-                dos.writeBoolean(b);
-                dos.flush();
-                return address;
-            } catch (IOException ex) {
-                System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
-            }
-        } else {
-            System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
-        }
-        return address;
-    }
-
-    /**
-     * Sends command with String data to server if connected
-     *
-     * @param command Name of command sending to server
-     * @param s value of String data sent with command
-     * @return The address used to read returning data from server
-     */
-    public byte sendCommandWithString(String command, String s) {
-        byte address = -2;
-        if (isConnected()) {
-            try {
-                address = addCurrentAdress();
-                dos.write(PacketTypes.String.getID());
-                dos.write(address);
-                dos.writeUTF(command);
-                dos.writeUTF(s);
-                dos.flush();
-                return address;
-            } catch (IOException ex) {
-                System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
-            }
-        } else {
-            System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
-        }
-        return address;
-    }
-
-    /**
-     * Sends command with double array data to server if connected
-     *
-     * @param command Name of command sending to server
-     * @param d value of double array sent with command
-     * @return The address used to read returning data from server
-     */
-    private byte sendCommandWithDoubleArray(String command, double d[]) {
-        byte address = -2;
-        if (isConnected()) {
-            try {
-                address = addCurrentAdress();
-                dos.write(PacketTypes.DoubleArray.getID());
-                dos.write(address);
-                dos.writeUTF(command);
-                dos.writeInt(d.length);
-                for (int i = 0; i < d.length; i++) {
-                    dos.writeDouble(d[i]);
-                }
-                dos.flush();
-                return address;
-            } catch (IOException ex) {
-                System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
-            }
-        } else {
-            System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
-        }
-        return address;
-    }
-
-    /**
-     * Sends command with byte array data to server if connected
-     *
-     * @param command Name of command sending to server
-     * @param b value of byte array sent with command
-     * @return The address used to read returning data from server
-     */
-    private byte sendCommandWithByteArray(String command, byte[] b) {
-        byte address = -2;
-        if (isConnected()) {
-            try {
-                address = addCurrentAdress();
-                dos.write(PacketTypes.ByteArray.getID());
-                dos.write(address);
-                dos.writeUTF(command);
-                dos.writeInt(b.length);
-                for (int i = 0; i < b.length; i++) {
-                    dos.writeByte(b[i]);
-                }
-                dos.flush();
-                return address;
-            } catch (IOException ex) {
-                System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
-            }
-        } else {
-            System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
-        }
-        return address;
-    }
-
-    private byte sendCommandWithIntegerArray(String command, int[] i) {
-        byte address = -2;
-        if (isConnected()) {
-            try {
-                address = addCurrentAdress();
-                dos.write(PacketTypes.IntegerArray.getID());
-                dos.write(address);
-                dos.writeUTF(command);
-                dos.writeInt(i.length);
-                for (int x = 0; x < i.length; x++) {
-                    dos.writeInt(i[x]);
-                }
-                dos.flush();
-                return address;
-            } catch (IOException ex) {
-                System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
-            }
-        } else {
-            System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
-        }
-        return address;
-    }
-
-    private byte sendCommandWithLongArray(String command, long[] l) {
-        byte address = -2;
-        if (isConnected()) {
-            try {
-                address = addCurrentAdress();
-                dos.write(PacketTypes.LongArray.getID());
-                dos.write(address);
-                dos.writeUTF(command);
-                dos.writeInt(l.length);
-                for (int x = 0; x < l.length; x++) {
-                    dos.writeLong(l[x]);
-                }
-                dos.flush();
-                return address;
-            } catch (IOException ex) {
-                System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
-            }
-        } else {
-            System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
-        }
-        return address;
-    }
-
-    private byte sendCommandWithShortArray(String command, short[] s) {
-        byte address = -2;
-        if (isConnected()) {
-            try {
-                address = addCurrentAdress();
-                dos.write(PacketTypes.ShortArray.getID());
-                dos.write(address);
-                dos.writeUTF(command);
-                dos.writeInt(s.length);
-                for (int x = 0; x < s.length; x++) {
-                    dos.writeShort(s[x]);
-                }
-                dos.flush();
-                return address;
-            } catch (IOException ex) {
-                System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
-            }
-        } else {
-            System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
-        }
-        return address;
-    }
-
-    private byte sendCommandWithFloatArray(String command, float[] f) {
-        byte address = -2;
-        if (isConnected()) {
-            try {
-                address = addCurrentAdress();
-                dos.write(PacketTypes.FloatArray.getID());
-                dos.write(address);
-                dos.writeUTF(command);
-                dos.writeInt(f.length);
-                for (int x = 0; x < f.length; x++) {
-                    dos.writeFloat(f[x]);
-                }
-                dos.flush();
-                return address;
-            } catch (IOException ex) {
-                System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
-            }
-        } else {
-            System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
-        }
-        return address;
-    }
-
-    private void sendHeatBeatCommand() {
-        if (isConnected()) {
-            try {
-                dos.write(PacketTypes.HeartBeat.getID()); //Sends byte with value of 21
-                dos.flush();
-            } catch (IOException ex) {
-                System.err.println("Error sending data to Robot Server: \"" + ex.getMessage() + "\"");
-            }
-        } else {
-            System.err.println("MUST BE CONNECTED TO ROBOT TO SEND COMMANDS!!!");
-        }
-    }
-
-    private boolean sendHeartBeat() {
-        this.sendHeatBeatCommand();
-        if (packetHandler.getHeartBeat().getID() == 21) { //Checks if packet has correct id
-            this.connected = true;
-            return true;
-        } else {
-            return false;
-
-        }
-    }
-
-    private class HeartBeatThread implements Runnable {
-
-        @Override
-        public void run() {
-            while (isConnected() && !Thread.currentThread().isInterrupted() && !isConnecting()) {
-                if(sendHeartBeat()) { //Sends heartbeat command every second
-                    try {
-                        Thread.sleep(250);
-                    } catch (InterruptedException ex) {
-                        System.err.println("Error sleeping: \"" + ex.getMessage() + "\"");
+                byte address = addCurrentAddress();
+                outputLock.lock();
+                if (array instanceof int[]) {
+                    dataOutput.write(PacketTypes.IntegerArray.getID());
+                    addAddressCommand(address, command);
+                    dataOutput.writeInt(((int[]) array).length);
+                    for (int i = 0; i < ((int[]) array).length; i++) {
+                        dataOutput.writeInt(((int[]) array)[i]);
                     }
+                    dataOutput.flush();
+                    outputLock.unlock();
+                    return address;
+                } else if (array instanceof double[]) {
+                    dataOutput.write(PacketTypes.DoubleArray.getID());
+                    addAddressCommand(address, command);
+                    dataOutput.writeInt(((double[]) array).length);
+                    for (int i = 0; i < ((double[]) array).length; i++) {
+                        dataOutput.writeDouble(((double[]) array)[i]);
+                    }
+                    dataOutput.flush();
+                    outputLock.unlock();
+                    return address;
+                } else if (array instanceof short[]) {
+                    dataOutput.write(PacketTypes.ShortArray.getID());
+                    addAddressCommand(address, command);
+                    dataOutput.writeInt(((short[]) array).length);
+                    for (int i = 0; i < ((short[]) array).length; i++) {
+                        dataOutput.writeShort(((short[]) array)[i]);
+                    }
+                    dataOutput.flush();
+                    outputLock.unlock();
+                    return address;
+                } else if (array instanceof byte[]) {
+                    dataOutput.write(PacketTypes.ByteArray.getID());
+                    addAddressCommand(address, command);
+                    dataOutput.writeInt(((byte[]) array).length);
+                    for (int i = 0; i < ((byte[]) array).length; i++) {
+                        dataOutput.write(((byte[]) array)[i]);
+                    }
+                    dataOutput.flush();
+                    outputLock.unlock();
+                    return address;
+                } else if (array instanceof long[]) {
+                    dataOutput.write(PacketTypes.LongArray.getID());
+                    addAddressCommand(address, command);
+                    dataOutput.writeInt(((long[]) array).length);
+                    for (int i = 0; i < ((long[]) array).length; i++) {
+                        dataOutput.writeLong(((long[]) array)[i]);
+                    }
+                    dataOutput.flush();
+                    outputLock.unlock();
+                    return address;
+                } else if (array instanceof float[]) {
+                    dataOutput.write(PacketTypes.FloatArray.getID());
+                    addAddressCommand(address, command);
+                    dataOutput.writeInt(((float[]) array).length);
+                    for (int i = 0; i < ((float[]) array).length; i++) {
+                        dataOutput.writeFloat(((float[]) array)[i]);
+                    }
+                    dataOutput.flush();
+                    outputLock.unlock();
+                    return address;
                 } else {
-                    Thread.currentThread().interrupt();
-                    close();
-                    break;
+                    System.err.println("This doesn't support that number array");
+                    return -2;
                 }
+            } catch (IOException ex) {
+                System.err.println("Error ID: 7 " + ex.getMessage());
+                return -2;
+            } finally {
+                outputLock.unlock();
             }
+        } else {
+            System.err.println("Error ID: 2 Not connected");
+            return -2;
         }
     }
 
-    private void setHeatBeatDelay(int i) {
-        this.heartBeatDelay = i;
-    }
-
-    /**
-     * Gets the heartbeat delay this is the amount of time it takes for the
-     * server to respond and the client to read it
-     *
-     * @return Server delay in milliseconds
-     */
-    public int getDelay() {
-        return TIMEOUT_NUM * this.heartBeatDelay;
-    }
-
-    /**
-     * Reads byte from server with address
-     *
-     * @param address address used to identify packet for reading
-     * @return The byte data read from server
-     */
-    public byte readBytePacket(byte address) {
+    public byte sendCommandWithBoolean(String command, boolean b) {
+        byte address;
         if (isConnected()) {
-            Packet isNull = packetHandler.getPacket(address);
-            if (isNull == null) {
-                return -1;
+            try {
+                outputLock.lock();
+                address = addCurrentAddress();
+                dataOutput.write(PacketTypes.Boolean.getID());
+                addAddressCommand(address, command);
+                dataOutput.writeBoolean(b);
+                dataOutput.flush();
+                outputLock.unlock();
+                return address;
+            } catch (IOException ex) {
+                System.err.println("Error ID: 8 " + ex.getMessage());
+                outputLock.unlock();
             }
-            return (Byte) isNull.getData();
+        } else {
+            System.err.println("Error ID: 2 Not connected");
         }
-        System.err.println("MUST BE CONNECTED TO ROBOT TO READ DATA!!!");
-        return -1;
+        return -2;
     }
 
-    /**
-     * Reads boolean from server with address
-     *
-     * @param address address used to identify packet for reading
-     * @return The boolean data read from server
-     */
-    public boolean readBooleanPacket(byte address) {
+    public byte sendCommandWithString(String command, String s) {
+        byte address;
         if (isConnected()) {
-            Packet isNull = packetHandler.getPacket(address);
-            if (isNull == null) {
-                return false;
+            try {
+                outputLock.lock();
+                address = addCurrentAddress();
+                dataOutput.write(PacketTypes.String.getID());
+                addAddressCommand(address, command);
+                dataOutput.writeUTF(s);
+                dataOutput.flush();
+                outputLock.unlock();
+                return address;
+            } catch (IOException ex) {
+                System.err.println("Error ID: 9 " + ex.getMessage());
+                outputLock.unlock();
             }
-            return ((Byte) isNull.getData() == 1) ? true : false; //lol, not really reading a boolean... just byte values
+        } else {
+            System.err.println("Error ID: 2 Not connected");
         }
-        System.err.println("MUST BE CONNECTED TO ROBOT TO READ DATA!!!");
-        return false;
-    }
-
-    /**
-     * Reads int from server with address
-     *
-     * @param address address used to identify packet for reading
-     * @return The int data read from server
-     */
-    public int readIntPacket(byte address) {
-        if (isConnected()) {
-            Packet isNull = packetHandler.getPacket(address);
-            if (isNull == null) {
-                return -1;
-            }
-            return (Integer) isNull.getData();
-        }
-        System.err.println("MUST BE CONNECTED TO ROBOT TO READ DATA!!!");
-        return -1;
-    }
-
-    /**
-     * Reads double from server with address
-     *
-     * @param address address used to identify packet for reading
-     * @return The double data read from server
-     */
-    public double readDoublePacket(byte address) {
-        if (isConnected()) {
-            Packet isNull = packetHandler.getPacket(address);
-            if (isNull == null) {
-                return -1.0;
-            }
-            return (Double) isNull.getData();
-        }
-        System.err.println("MUST BE CONNECTED TO ROBOT TO READ DATA!!!");
-        return -1.0;
-    }
-
-    /**
-     * Reads String from server with address
-     *
-     * @param address address used to identify packet for reading
-     * @return The String data read from server
-     */
-    public String readStringPacket(byte address) {
-        if (isConnected()) {
-            Packet isNull = packetHandler.getPacket(address);
-            if (isNull == null) {
-                return "";
-            }
-            return (String) isNull.getData();
-        }
-        System.err.println("MUST BE CONNECTED TO ROBOT TO READ DATA!!!");
-        return "";
-    }
-
-    /**
-     * Reads double array from server with address
-     *
-     * @param address address used to identify packet for reading
-     * @return The double array data read from server
-     */
-    public double[] readDoubleArrayPacket(byte address) {
-        if (isConnected()) {
-            Packet isNull = packetHandler.getPacket(address);
-            if (isNull == null) {
-                return new double[0];
-            }
-            return (double[]) isNull.getData();
-        }
-        System.err.println("MUST BE CONNECTED TO ROBOT TO READ DATA!!!");
-        return new double[0];
-    }
-
-    /**
-     * Reads byte array from server with address
-     *
-     * @param address address used to identify packet for reading
-     * @return The byte array data read from server
-     */
-    public byte[] readByteArrayPacket(byte address) {
-        if (isConnected()) {
-            Packet isNull = packetHandler.getPacket(address);
-            if (isNull == null) {
-                return new byte[0];
-            }
-            return (byte[]) isNull.getData();
-        }
-        System.err.println("MUST BE CONNECTED TO ROBOT TO READ DATA!!!");
-        return new byte[0];
-    }
-
-    /**
-     * Closes client socket from server, which makes isConnected false. Also
-     * called when their is an error sending data to server
-     */
-    private void close() {
-        try {
-            this.connected = false;
-            if (socket != null) {
-                this.heartBeatThread.interrupt();
-                this.socket.close();
-            }
-        } catch (IOException ex) {
-            System.err.println("Error closing socket: \"" + ex.getMessage() + "\"");
-        } finally {
-            if(autoReconnect) {
-                try {
-                    Thread.sleep(100);
-                } catch (InterruptedException e) {
-
-                }
-                this.connect();
-            }
-        }
-    }
-
-    /**
-     * Closes client socket from server, which makes isConnected false.
-     */
-    public void disconnect() {
-        if(autoReconnect) {
-            this.autoReconnect = false;
-            this.close();
-            this.autoReconnect = true;
-        } else this.close();
+        return -2;
     }
 
     private class PacketHandler implements Runnable {
-
-        private Packet[] packetQueue; //Where packets are stored with their address
-        private Packet beatQueue; //Where heartbeat packet is stored
-        private Thread mainThread; //Main thread for packetHandler
-
+        
+        private Packet[] packetQueue;
+        private Packet beatQueue;
+        private Thread mainThread;
+        
         public PacketHandler() {
-            this.packetQueue = new Packet[51]; //Makes packet queue
+            this.packetQueue = new Packet[101]; //Makes packet queue
             this.beatQueue = null;
             this.mainThread = new Thread(this);
             this.mainThread.start();
         }
-
+        
         public void run() {
             while (isConnected()) {
                 try {
-                    while (dis.available() > 0) { //Reads packet when it comes in from input stream
-                        new Packet(readByte()); //Makes new packet of id read from byte
+                    while (dataInput.available() > 0) { //Reads packet when it comes in from input stream
+                        new Packet((byte)readNumber(PacketTypes.Byte.getID())); //Makes new packet of id read from byte
                     }
                 } catch (IOException ex) {
-                    System.err.println("Error reading packet ID from robot server: \"" + ex.getMessage() + "\"");
+                    System.err.println("Error ID: 10 " + ex.getMessage());
                 }
                 try {
                     Thread.sleep(TIMEOUT_NUM);
                 } catch (InterruptedException ex) {
-                    System.err.println("Error sleeping: \"" + ex.getMessage() + "\"");
+                    System.err.println("Error ID: 11 sleeping");
                 }
             }
         }
-
-        private Packet getHeartBeat() {
+        
+         private Packet getHeartBeat() {
             int i = 0;
             while (beatQueue == null) {
-                if (i > timeout) {
+                if (i > packetTimeOut) {
                     System.err.println("SERVER DID NOT RESPOND!!!");
                     return new Packet((byte) 100); //Returns error packet
                 }
                 try {
                     Thread.sleep(TIMEOUT_NUM);
                 } catch (InterruptedException ex) {
-                    System.err.println("Error sleeping: \"" + ex.getMessage() + "\"");
+                    System.err.println("Error ID: 11 sleeping");
                 }
                 ++i;
             }
-            setHeatBeatDelay(i);
+            setHeartBeatDelay(i);
             Packet p = beatQueue;
             resetBeatQueue();
             return p;
@@ -856,14 +389,14 @@ class RRCPClient {
             int i = 0;
             while (packetQueue[address] == null) {
                 ++i;
-                if (i > timeout + 10) {
+                if (i > packetTimeOut + 10) {
                     System.err.println("Could not find packet! Packet lost!");
                     return null;
                 }
                 try {
                     Thread.sleep(TIMEOUT_NUM);
                 } catch (InterruptedException ex) {
-                    System.err.println("Error sleeping: \"" + ex.getMessage() + "\"");
+                    System.err.println("Error ID: 11 sleeping");
                 }
             }
             Packet p = packetQueue[address];
@@ -882,8 +415,23 @@ class RRCPClient {
         public void resetBeatQueue() {
             beatQueue = null;
         }
-    }
 
+    }
+    
+    public Object readPacket(byte address) {
+        if(isConnected()) {
+            if(address == -2) {
+                return null;
+            }
+            Packet isNull = packetHandler.getPacket(address);
+            if(isNull == null) {
+                return null;
+            }
+            return isNull.getData();
+        }
+        return null;
+    }
+    
     private class Packet {
 
         private byte id;
@@ -894,44 +442,26 @@ class RRCPClient {
             this.id = id;
             if (id == PacketTypes.HeartBeat.getID()) { //Determains what type of packet it is from id
                 packetHandler.addPacketToBeatQueue(this);
-            } else if (id == PacketTypes.Byte.getID()) {
-                address = readByte();
-                data = readByte();
-                packetHandler.addPacketToQueue(this);
-            } else if (id == PacketTypes.Integer.getID()) {
-                address = readByte();
-                data = readInt();
+            } else if (id <= PacketTypes.Float.getID()) { //Numbers
+                address = (byte)readNumber(PacketTypes.Byte.getID());
+                data = readNumber(id);
                 packetHandler.addPacketToQueue(this);
             } else if (id == PacketTypes.Boolean.getID()) {
-                address = readByte();
-                data = readByte();
-                packetHandler.addPacketToQueue(this);
-            } else if (id == PacketTypes.Double.getID()) {
-                address = readByte();
-                data = readDouble();
+                address = (byte)readNumber(PacketTypes.Byte.getID());
+                data = readBoolean();
                 packetHandler.addPacketToQueue(this);
             } else if (id == PacketTypes.String.getID()) {
-                address = readByte();
+                address = (byte)readNumber(PacketTypes.Byte.getID());
                 data = readString();
                 packetHandler.addPacketToQueue(this);
-            } else if (id == PacketTypes.DoubleArray.getID()) {
-                address = readByte();
-                data = readDoubleArray();
+            } else if (id >= PacketTypes.DoubleArray.getID() && id <= PacketTypes.FloatArray.getID()) {
+                address = (byte)readNumber(PacketTypes.Byte.getID());
+                data = readNumberArray(id);
                 packetHandler.addPacketToQueue(this);
-            } else if (id == PacketTypes.ByteArray.getID()) {
-                address = readByte();
-                data = readByteArray();
-                packetHandler.addPacketToQueue(this);
-            } else if (id == PacketTypes.ClientCommand.getID()) {
-                executeCommand(readString(), null);
-            } else if (id == PacketTypes.ClientCommandDouble.getID()) {
-                executeCommand(readString(), readDouble());
-            } else if (id == PacketTypes.ClientCommandDoubleArray.getID()) {
-                executeCommand(readString(), readDoubleArray());
             } else if (id == 100) { //Error packet
             } else {
                 data = null;
-                System.err.println("Packet not reconized!!!"); //Unknow packet id
+                System.err.println("Error ID: 12 Packet id " + id + " not reconized!!!"); //Unknow packet id
             }
         }
 
@@ -943,105 +473,126 @@ class RRCPClient {
             return id;
         }
     }
-    //The rest is used to read data from inputstream
-
-    private byte readByte() {
+    
+    private Number readNumber(byte id) {
         try {
-            byte b = dis.readByte();
-            return b;
+            if (id == PacketTypes.Byte.getID()|| id == PacketTypes.ByteArray.getID()) return dataInput.readByte();
+            else if (id == PacketTypes.Integer.getID() || id == PacketTypes.IntegerArray.getID()) return dataInput.readInt();
+            else if (id == PacketTypes.Double.getID() || id == PacketTypes.DoubleArray.getID()) return dataInput.readDouble();
+            else if (id == PacketTypes.Long.getID() || id == PacketTypes.LongArray.getID()) return dataInput.readLong();
+            else if (id == PacketTypes.Short.getID() || id == PacketTypes.ShortArray.getID()) return dataInput.readShort();
+            else if (id == PacketTypes.Float.getID() || id == PacketTypes.FloatArray.getID()) return dataInput.readFloat();
+            else return -1;
         } catch (IOException ex) {
-            System.err.println("Error reading data from Robot Server: \"" + ex.getMessage() + "\"");
+             System.err.println("Error ID: 13 "+ ex.getMessage());
         }
         return -1;
     }
-
-    private int readInt() {
-        try {
-            int i = dis.readInt();
-            return i;
-        } catch (IOException ex) {
-            System.err.println("Error reading data from Robot Server: \"" + ex.getMessage() + "\"");
+    
+    private Object readNumberArray(byte id) {
+        int length = (int)readNumber(PacketTypes.Integer.getID());
+        Number[] n = new Number[length];
+        for (int i = 0; i < length; i++) {
+            n[i] = readNumber(id);
         }
-        return -1;
+        return n;
     }
-
-    private double readDouble() {
-
+    
+    private boolean readBoolean() {
         try {
-            double d = dis.readDouble();
-            return d;
+            return dataInput.readBoolean();
         } catch (IOException ex) {
-            System.err.println("Error reading data from Robot Server: \"" + ex.getMessage() + "\"");
+            System.err.println("Error ID: 14 "+ ex.getMessage());
         }
-        return -1.0;
+        return false; 
     }
-
+    
     private String readString() {
         try {
-            String s = dis.readUTF();
-            return s;
+            return dataInput.readUTF();
         } catch (IOException ex) {
-            System.err.println("Error reading data from Robot Server: \"" + ex.getMessage() + "\"");
+            System.err.println("Error ID: 15 "+ ex.getMessage());
         }
-        return "";
+        return null;
     }
 
-    private double[] readDoubleArray() {
+    private void close() {
         try {
-            int length = dis.readInt();
-            double[] d = new double[length];
-            for (int i = 0; i < length; i++) {
-                d[i] = dis.readDouble();
+            this.connected = false;
+            if (socket != null) {
+                this.heartBeatThread.interrupt();
+                this.socket.close();
             }
-            return d;
         } catch (IOException ex) {
-            System.err.println("Error reading data from Robot Server: \"" + ex.getMessage() + "\"");
-        }
-        return new double[0];
-    }
-
-    private byte[] readByteArray() {
-        try {
-            int length = dis.readInt();
-            byte[] b = new byte[length];
-            for (int i = 0; i < length; i++) {
-                b[i] = dis.readByte();
+            System.err.println("Error ID: 16 "+ ex.getMessage());
+        } finally {
+            if(autoReconnect) {
+                this.connect();
             }
-            return b;
-        } catch (IOException ex) {
-            System.err.println("Error reading data from Robot Server: \"" + ex.getMessage() + "\"");
         }
-        return new byte[0];
     }
-    /*
-     * 1.1
-     */
-    private ArrayList<RRCPClientCommand> commands = new ArrayList<>();
+    
+    public void disconnect() {
+        if(autoReconnect) {
+            this.autoReconnect = false;
+            this.close();
+            this.autoReconnect = true;
+        } else this.close();
+    }
+    //Heartbeat stuff
 
-    private void executeCommand(final String key, final Object data) {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                for (RRCPClientCommand command : commands) {
-                    if (command.getKey().equals(key)) {
-                        command.execute(data);
-                        return;
+    private class HeartBeatThread implements Runnable {
+
+        @Override
+        public void run() {
+            while (isConnected() && !Thread.currentThread().isInterrupted()) {
+                if (sendHeartBeat()) {
+                    try {
+                        Thread.sleep(250);
+                    } catch (InterruptedException ex) {
+                        System.err.println("Error ID: 11 sleeping");
                     }
+                } else {
+                    System.err.println("Heart Beat Dead!");
+                    Thread.currentThread().interrupt();
+                    close();
+                    break;
                 }
-                System.err.println("Error reciving command: " + key + " command not reconized");
             }
-        }).start();
-    }
-
-    public void addCommand(RRCPClientCommand command) {
-        commands.add(command);
-    }
-
-    public String[] getCommandKeyList() {
-        String[] s = new String[commands.size()];
-        for (int i = 0; i < commands.size(); ++i) {
-            s[i] = commands.get(i).getKey();
         }
-        return s;
+
+        private boolean sendHeartBeat() {
+            this.sendHeartBeatCommand();
+            if (packetHandler.getHeartBeat().getID() == 21) {
+                connected = true;
+                return true;
+            } else {
+                return false;
+            }
+        }
+
+        private void sendHeartBeatCommand() {
+            if (isConnected()) {
+                try {
+                    outputLock.lock();
+                    dataOutput.write(PacketTypes.HeartBeat.getID());
+                    dataOutput.flush();
+                } catch (IOException ex) {
+                    System.err.println("Error ID: 17 "+ ex.getMessage());
+                } finally {
+                    outputLock.unlock();
+                }
+            } else {
+                System.err.println("Error ID: 2 Not connected");
+            }
+        }
+    }
+
+    private void setHeartBeatDelay(int i) {
+        this.heartBeatDelay = i;
+    }
+
+    public int getDelay() {
+        return TIMEOUT_NUM * this.heartBeatDelay;
     }
 }

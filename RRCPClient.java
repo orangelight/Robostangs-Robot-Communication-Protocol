@@ -5,6 +5,8 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 /**
  *
@@ -26,6 +28,7 @@ public class RRCPClient {
     private volatile byte currentAddress = -1;
     private final int TIMEOUT_NUM = 5;
     private boolean autoReconnect = true;
+    private Lock outputLock;
 
     private static enum PacketTypes {
 
@@ -80,6 +83,8 @@ public class RRCPClient {
                 dataOutput = new DataOutputStream(new BufferedOutputStream(socket.getOutputStream()));
                 packetHandler = new PacketHandler();
                 heartBeatThread = new Thread(new HeartBeatThread());
+                outputLock = new ReentrantLock();
+                outputLock.unlock();
                 connected = true;
                 heartBeatThread.start();
             } catch (IOException ex) {
@@ -115,14 +120,17 @@ public class RRCPClient {
         byte address;
         if (isConnected()) {
             try {
+                outputLock.lock();
                 address = addCurrentAddress();
                 dataOutput.write(PacketTypes.Command.getID());
                 addAddressCommand(address, command);
                 dataOutput.flush();
+                outputLock.unlock();
                 return address;
             } catch (IOException ex) {
                 System.err.println("Error ID: 1 "+ex.getMessage());
-            }
+                outputLock.unlock();
+            } 
         } else {
             System.err.println("Error ID: 2 Not connected");
         }
@@ -139,40 +147,52 @@ public class RRCPClient {
             try {
                 byte address = addCurrentAddress();
                 if (n instanceof Integer) {
+                    outputLock.lock();
                     dataOutput.write(PacketTypes.Integer.getID());
                     addAddressCommand(address, command);
                     dataOutput.writeInt((int) n);
                     dataOutput.flush();
+                    outputLock.unlock();
                     return address;
                 } else if (n instanceof Double) {
+                    outputLock.lock();
                     dataOutput.write(PacketTypes.Double.getID());
                     addAddressCommand(address, command);
                     dataOutput.writeDouble((double) n);
                     dataOutput.flush();
+                    outputLock.unlock();
                     return address;
                 } else if (n instanceof Short) {
+                    outputLock.lock();
                     dataOutput.write(PacketTypes.Short.getID());
                     addAddressCommand(address, command);
                     dataOutput.writeDouble((short) n);
                     dataOutput.flush();
+                    outputLock.unlock();
                     return address;
                 } else if (n instanceof Byte) {
+                    outputLock.lock();
                     dataOutput.write(PacketTypes.Byte.getID());
                     addAddressCommand(address, command);
                     dataOutput.writeDouble((byte) n);
                     dataOutput.flush();
+                    outputLock.unlock();
                     return address;
                 } else if (n instanceof Long) {
+                    outputLock.lock();
                     dataOutput.write(PacketTypes.Long.getID());
                     addAddressCommand(address, command);
                     dataOutput.writeDouble((long) n);
                     dataOutput.flush();
+                    outputLock.unlock();
                     return address;
                 } else if (n instanceof Float) {
+                    outputLock.lock();
                     dataOutput.write(PacketTypes.Float.getID());
                     addAddressCommand(address, command);
                     dataOutput.writeDouble((float) n);
                     dataOutput.flush();
+                    outputLock.unlock();
                     return address;
                 } else {
                     System.err.println("Error ID: 5 Really... I don't what to support that number type...");
@@ -181,6 +201,8 @@ public class RRCPClient {
             } catch (IOException ex) {
                 System.err.println("Error ID: 6 " + ex.getMessage());
                 return -2;
+            } finally {
+                outputLock.unlock();
             }
         } else {
             System.err.println("Error ID: 2 Not connected");
@@ -192,6 +214,7 @@ public class RRCPClient {
         if (isConnected()) {
             try {
                 byte address = addCurrentAddress();
+                outputLock.lock();
                 if (array instanceof int[]) {
                     dataOutput.write(PacketTypes.IntegerArray.getID());
                     addAddressCommand(address, command);
@@ -200,6 +223,7 @@ public class RRCPClient {
                         dataOutput.writeInt(((int[]) array)[i]);
                     }
                     dataOutput.flush();
+                    outputLock.unlock();
                     return address;
                 } else if (array instanceof double[]) {
                     dataOutput.write(PacketTypes.DoubleArray.getID());
@@ -209,6 +233,7 @@ public class RRCPClient {
                         dataOutput.writeDouble(((double[]) array)[i]);
                     }
                     dataOutput.flush();
+                    outputLock.unlock();
                     return address;
                 } else if (array instanceof short[]) {
                     dataOutput.write(PacketTypes.ShortArray.getID());
@@ -218,6 +243,7 @@ public class RRCPClient {
                         dataOutput.writeShort(((short[]) array)[i]);
                     }
                     dataOutput.flush();
+                    outputLock.unlock();
                     return address;
                 } else if (array instanceof byte[]) {
                     dataOutput.write(PacketTypes.ByteArray.getID());
@@ -227,6 +253,7 @@ public class RRCPClient {
                         dataOutput.write(((byte[]) array)[i]);
                     }
                     dataOutput.flush();
+                    outputLock.unlock();
                     return address;
                 } else if (array instanceof long[]) {
                     dataOutput.write(PacketTypes.LongArray.getID());
@@ -236,6 +263,7 @@ public class RRCPClient {
                         dataOutput.writeLong(((long[]) array)[i]);
                     }
                     dataOutput.flush();
+                    outputLock.unlock();
                     return address;
                 } else if (array instanceof float[]) {
                     dataOutput.write(PacketTypes.FloatArray.getID());
@@ -245,6 +273,7 @@ public class RRCPClient {
                         dataOutput.writeFloat(((float[]) array)[i]);
                     }
                     dataOutput.flush();
+                    outputLock.unlock();
                     return address;
                 } else {
                     System.err.println("This doesn't support that number array");
@@ -253,6 +282,8 @@ public class RRCPClient {
             } catch (IOException ex) {
                 System.err.println("Error ID: 7 " + ex.getMessage());
                 return -2;
+            } finally {
+                outputLock.unlock();
             }
         } else {
             System.err.println("Error ID: 2 Not connected");
@@ -264,14 +295,17 @@ public class RRCPClient {
         byte address;
         if (isConnected()) {
             try {
+                outputLock.lock();
                 address = addCurrentAddress();
                 dataOutput.write(PacketTypes.Boolean.getID());
                 addAddressCommand(address, command);
                 dataOutput.writeBoolean(b);
                 dataOutput.flush();
+                outputLock.unlock();
                 return address;
             } catch (IOException ex) {
                 System.err.println("Error ID: 8 " + ex.getMessage());
+                outputLock.unlock();
             }
         } else {
             System.err.println("Error ID: 2 Not connected");
@@ -283,14 +317,17 @@ public class RRCPClient {
         byte address;
         if (isConnected()) {
             try {
+                outputLock.lock();
                 address = addCurrentAddress();
                 dataOutput.write(PacketTypes.String.getID());
                 addAddressCommand(address, command);
                 dataOutput.writeUTF(s);
                 dataOutput.flush();
+                outputLock.unlock();
                 return address;
             } catch (IOException ex) {
                 System.err.println("Error ID: 9 " + ex.getMessage());
+                outputLock.unlock();
             }
         } else {
             System.err.println("Error ID: 2 Not connected");
@@ -383,6 +420,9 @@ public class RRCPClient {
     
     public Object readPacket(byte address) {
         if(isConnected()) {
+            if(address == -2) {
+                return null;
+            }
             Packet isNull = packetHandler.getPacket(address);
             if(isNull == null) {
                 return null;
@@ -534,10 +574,13 @@ public class RRCPClient {
         private void sendHeartBeatCommand() {
             if (isConnected()) {
                 try {
+                    outputLock.lock();
                     dataOutput.write(PacketTypes.HeartBeat.getID());
                     dataOutput.flush();
                 } catch (IOException ex) {
                     System.err.println("Error ID: 17 "+ ex.getMessage());
+                } finally {
+                    outputLock.unlock();
                 }
             } else {
                 System.err.println("Error ID: 2 Not connected");

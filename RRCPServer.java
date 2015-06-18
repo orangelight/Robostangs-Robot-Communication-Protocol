@@ -8,14 +8,16 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
  * @author Alex
  */
 public class RRCPServer {
-    private static int port = 5800; //Port server is on. Should be 1180 for comp.
-    private static int timeout = 750; //Timeout for clients heartbeats
+    private static int port = 5801; //Port server is on. Should be 1180 for comp.
+    private static int timeout = 500; //Timeout for clients heartbeats
     private static RRCPServer instance; //Instance of server
     private static ServerSocket server; //Socket that listens for incoming connections
     private static ArrayList<RRCPCommand> commandlist; //List where commands are stored
@@ -44,7 +46,7 @@ public class RRCPServer {
     /**
      * Starts server for listening for incoming client connections
      *
-     * @param port What port the server is ran on. Use 5800 for competitions
+     * @param port What port the server is ran on. Use 1180 for competitions
      * @param timeout Timeout for client heartbeat in milliseconds. Don't use
      * number less then 1000
      */
@@ -56,7 +58,7 @@ public class RRCPServer {
 
     /**
      * Starts server for listening for incoming clients connections Uses default
-     * port of 548. Use 5800 in competitions Uses default timeout of 2000ms
+     * port of 548. Use 1180 in competitions Uses default timeout of 2000ms
      */
     public static void startServer() {
         clientListener.startListener();
@@ -150,12 +152,13 @@ public class RRCPServer {
                 while (System.currentTimeMillis() < this.lastHeartBeat + timeout && RRCPServer.clientListener.listening) {
                     while (dis.available() > 0) {
                         byte id = dis.readByte();
-                        this.lastHeartBeat = System.currentTimeMillis();
+                        //this.lastHeartBeat = System.currentTimeMillis();
                         if (id == 21) {
                             dos.write((byte) 21);
                             dos.flush();
+                            
+                            System.out.println("Heartbeat Received"+(System.currentTimeMillis()-lastHeartBeat));
                             this.lastHeartBeat = System.currentTimeMillis();
-                            System.out.println("Heartbeat Received");
                             break;
                         } else if (id == 0) {
                             this.close();
@@ -164,23 +167,23 @@ public class RRCPServer {
                             execute(dis.readByte(), dis.readUTF(), dis.readByte());
                         } else if (id == 2) {
                             execute(dis.readByte(), dis.readUTF(), dis.readInt());
-                        } else if (id == 3) {
-                            execute(dis.readByte(), dis.readUTF(), dis.readBoolean());
-                        } else if (id == 4) {
-                            execute(dis.readByte(), dis.readUTF(), dis.readDouble());
-                        } else if (id == 5) {
-                            execute(dis.readByte(), dis.readUTF(), dis.readUTF());
-                        } else if (id == 6) {
-                            execute(dis.readByte(), dis.readUTF(), this.readDoubleArray());
-                        } else if (id == 7) {
-                            execute(dis.readByte(), dis.readUTF(), this.readByteArray());
-                        } else if (id == 8) {
-                            execute(dis.readByte(), dis.readUTF(), null);
                         } else if (id == 9) {
-                            execute(dis.readByte(), dis.readUTF(), dis.readLong());
+                            execute(dis.readByte(), dis.readUTF(), dis.readBoolean());
+                        } else if (id == 3) {
+                            execute(dis.readByte(), dis.readUTF(), dis.readDouble());
+                        } else if (id == 8) {
+                            execute(dis.readByte(), dis.readUTF(), dis.readUTF());
                         } else if (id == 10) {
-                            execute(dis.readByte(), dis.readUTF(), dis.readShort());
+                            execute(dis.readByte(), dis.readUTF(), this.readDoubleArray());
                         } else if (id == 11) {
+                            execute(dis.readByte(), dis.readUTF(), this.readByteArray());
+                        } else if (id == 7) {
+                            execute(dis.readByte(), dis.readUTF(), null);
+                        } else if (id == 4) {
+                            execute(dis.readByte(), dis.readUTF(), dis.readLong());
+                        } else if (id == 5) {
+                            execute(dis.readByte(), dis.readUTF(), dis.readShort());
+                        } else if (id == 6) {
                             execute(dis.readByte(), dis.readUTF(), dis.readFloat());
                         } else if (id == 12) {
                             execute(dis.readByte(), dis.readUTF(), this.readIntegerArray());
@@ -200,8 +203,10 @@ public class RRCPServer {
                         System.err.println("Error sleeping: \"" + ex.getMessage() + "\"");
                     }
                 }
-                System.err.println("Client timed out!!!");
+                System.err.println("Client timed out!!!");                System.err.println("Client timed out!!!");
+
             } catch (IOException ex) {
+                Logger.getLogger(RRCPServer.class.getName()).log(Level.SEVERE, null, ex);
                 System.err.println("Error reading data from client: \"" + ex.getMessage() + "\"");
             }
             connectionList.remove(this);
@@ -384,19 +389,6 @@ public class RRCPServer {
     public static void sendCommandWithDoubleArray(String command, double d[]) {
         for (RRCPConnectionHandler rrcpCon : connectionList) {
             rrcpCon.sendCommandWithDoubleArray(command, d);
-        }
-    }
-
-    private static int getOpenIndex() {
-        if (connectionList.isEmpty()) {
-            return 0;
-        } else {
-            for (int i = 0; i < connectionList.size(); ++i) {
-                if (connectionList.get(i) == null) {
-                    return i;
-                }
-            }
-            return connectionList.size();
         }
     }
 }
